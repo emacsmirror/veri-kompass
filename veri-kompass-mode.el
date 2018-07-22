@@ -1,5 +1,10 @@
 ;;; -*- lexical-binding: t; -*-
 
+(require 'helm)
+
+(defcustom vk-top nil
+  "Default top module name")
+
 (defcustom vk-extention-regexp ".+\\.s?v$"
   "Regexp matching project files")
 
@@ -17,6 +22,69 @@
 
 (defconst vk-ignore-keywords '("if" "task" "assert" "disable" "define" "posedge"
 			       "negedge" "int"))
+
+(defconst vk-sym-regex "[0-9a-z_]+")
+
+(defconst vk-ops-regex "[\]\[ ()|&\+-/%{}=<>]")
+
+(defun vk-sym-classify-at-point ()
+  (save-excursion
+    (re-search-forward "[=;]" nil t)
+    (pcase (aref (match-string-no-properties 0) 0)
+      (?\= 'l-val)
+      (?\; 'r-val))))
+
+(defun vk-sym-at-point ()
+  "Return an a-list containing (sym-name . 'r-val) or (sym-name . 'l-val)."
+  (save-excursion
+    (re-search-backward vk-ops-regex nil t)
+    (re-search-forward vk-sym-regex nil t)
+    (cons (match-string-no-properties 0) (vk-sym-classify-at-point))))
+
+(defun vk-search-driver (sym)
+  (save-excursion
+    (goto-char (point-min))
+    (if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\[*.*\] +\\("
+				   sym
+				   "\\)") nil t)
+	(list (cons (match-string 0) (match-beginning 3)))
+      (if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\("
+				     sym
+				     "\\)") nil t)
+	  (list (cons (match-string 0) (match-beginning 3)))
+	(goto-char (point-max))
+	(let ((res ()))
+	  (while (re-search-backward
+		  (concat
+		   "\\("
+		   sym
+		   "\\) *\\(\\[.*\\] +\\)?\\(=\\|<=\\)") nil t)
+	    (push (cons (concat (match-string 1) (match-string 2))
+			(match-beginning 0)) res))
+	  res)))))
+
+(defun vk-search-driver-at-point ()
+  "Goto the driver for symbol at point"
+  (interactive)
+  (let ((res (vk-search-driver (car (vk-sym-at-point)))))
+    (when res
+      (if (equal (length res) 1)
+	  (goto-char (cdar res))
+	(goto-char (helm :sources (helm-build-sync-source "select driver line"
+				    :candidates res)
+			 :buffer "*helm-veri-kompass-driver-select*"))))))
+
+(defun vk-search-load (_)
+  )
+
+(defun vk-follow-from-point ()
+  "Follow symbol at point.
+If is an l-val search for loads, if r-val search for drivers."
+  (interactive)
+  (let ((sym (vk-sym-at-point)))
+    (pcase (cdr sym)
+      ('l-val (vk-search-load-at-point))
+      ('r-val (vk-search-driver-at-point)))))
 
 (defun vk-list-file-in-proj (dir)
   (remove nil
@@ -122,7 +190,7 @@
 (defun vk-visit-module-declaration (mod-name)
   (interactive (list
                 (read-string (format "Module name (%s): " (thing-at-point 'word))
-                             nil nil (thing-at-point 'word))))
+			     nil nil (thing-at-point 'word))))
   (unless mod-name
     (setq mod-name (thing-at-point 'word)))
   (let ((target (vk-mod-to-file-name-pos mod-name)))
