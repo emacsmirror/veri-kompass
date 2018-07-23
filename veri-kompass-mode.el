@@ -48,24 +48,37 @@
 (defun vk-search-driver (sym)
   (save-excursion
     (goto-char (point-min))
-    (if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\[*.*\] +\\("
-				   sym
-				   "\\)") nil t)
+    ;; First case is easy, in case is a module input.
+    (if (re-search-forward (concat
+			    "input +\\(wire +\\)?\\(logic +\\)?\\[*.*\] +\\("
+			    sym
+			    "\\)") nil t)
 	(list (cons (match-string 0) (match-beginning 3)))
       (if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\("
 				     sym
 				     "\\)") nil t)
 	  (list (cons (match-string 0) (match-beginning 3)))
 	(goto-char (point-max))
+	;; Here we handle direct assignments.
 	(let ((res ()))
 	  (while (re-search-backward
 		  (concat
-		   "\\("
+		   "\\( *"
 		   sym
-		   "\\) *\\(\\[.*\\] +\\)?\\(=\\|<=\\)") nil t)
-	    (push (cons (concat (match-string 1) (match-string 2))
+		   "\\) *\\(\\[.*\\] +\\)?\\(=\\|<=\\)[^=].*") nil t)
+	    (push (cons (match-string 0)
 			(match-beginning 0)) res))
-	  res)))))
+	  (if res
+	      res
+	    ;; Otherwise is coming from e submodule. TODO: check input/output!
+	    (while (re-search-backward
+		    (concat
+		     "\\..+( *\\("
+		     sym
+		     "\\)\\(\\[.*\\] *\\)?)") nil t)
+	      (push (cons (match-string 0)
+			  (match-beginning 1)) res))
+	    res))))))
 
 (defun vk-search-driver-at-point ()
   "Goto the driver for symbol at point"
