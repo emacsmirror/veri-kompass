@@ -1,8 +1,9 @@
 ;;; -*- lexical-binding: t; -*-
 
 (require 'helm)
+(require 'org)
 
-(defcustom vk-top nil
+(defcustom vk-top ""
   "Default top module name")
 
 (defcustom vk-extention-regexp ".+\\.s?v$"
@@ -26,6 +27,9 @@
 (defconst vk-sym-regex "[0-9a-z_]+")
 
 (defconst vk-ops-regex "[\]\[ ()|&\+-/%{}=<>]")
+
+(defvar vk-hier
+  "Holds the design hierarchy.")
 
 (defun vk-sym-classify-at-point ()
   (save-excursion
@@ -74,7 +78,7 @@
 				    :candidates res)
 			 :buffer "*helm-veri-kompass-driver-select*"))))))
 
-(defun vk-search-load (_)
+(defun vk-search-load-at-point ()
   )
 
 (defun vk-follow-from-point ()
@@ -101,11 +105,11 @@ If is an l-val search for loads, if r-val search for drivers."
     (let ((mod-list))
       (while (re-search-forward
 	      "^ *module +\\([0-9a-z_]+\\) *\n* *\\((\\|#(\\|;\\)" nil t)
-	(add-to-list 'mod-list (list
-				(match-string-no-properties 1)
-			        file
-				(point)
-				(match-string-no-properties 0))))
+	(add-to-list (list
+		      (match-string-no-properties 1)
+		      file
+		      (point)
+		      (match-string-no-properties 0)) mod-list))
       mod-list)))
 
 (defun vk-list-modules-in-proj (files)
@@ -169,13 +173,13 @@ If is an l-val search for loads, if r-val search for drivers."
 				  vk-ignore-keywords)
 			  (member (match-string-no-properties 2)
 				  vk-ignore-keywords))
-		(add-to-list 'struct (cons (list (match-string-no-properties 2)
-						 (match-string-no-properties 1)
-						 (match-beginning 0)
-						 (car target)
-						 (match-string-no-properties 0))
-					   (vk-build-hier-rec
-					    (match-string-no-properties 1))))))
+		(add-to-list (cons (list (match-string-no-properties 2)
+					 (match-string-no-properties 1)
+					 (match-beginning 0)
+					 (car target)
+					 (match-string-no-properties 0))
+				   (vk-build-hier-rec
+				    (match-string-no-properties 1))) struct)))
 	    (puthash mod-name (reverse struct) vk-mod-str-hash))
 	(message "cannot find module %s" mod-name)
 	nil))))
