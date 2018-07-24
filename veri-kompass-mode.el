@@ -92,8 +92,27 @@
 				    :candidates res)
 			 :buffer "*helm-veri-kompass-driver-select*"))))))
 
+(defun vk-search-load (sym)
+  (save-excursion
+    (let ((loads ())
+	  (drivers (mapcar #'cdr (vk-search-driver sym))))
+      (goto-char (point-max))
+      (while (re-search-backward (concat "^.*\\(\\<" sym "\\>\\).*") nil t)
+	(unless (member (match-beginning 1) drivers)
+	  (push (cons (match-string 0) (match-beginning 1))
+		loads)))
+      loads)))
+
 (defun vk-search-load-at-point ()
-  )
+  "Goto the loads for symbol at point."
+  (interactive)
+  (let ((res (vk-search-load (car (vk-sym-at-point)))))
+    (when res
+      (if (equal (length res) 1)
+	  (goto-char (cdar res))
+	(goto-char (helm :sources (helm-build-sync-source "select load line"
+				    :candidates res)
+			 :buffer "*helm-veri-kompass-load-select*"))))))
 
 (defun vk-follow-from-point ()
   "Follow symbol at point.
