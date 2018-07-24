@@ -63,9 +63,10 @@
 	(let ((res ()))
 	  (while (re-search-backward
 		  (concat
-		   "\\( *"
+		   "\\(\\<"
 		   sym
-		   "\\) *\\(\\[.*\\] +\\)?\\(=\\|<=\\)[^=].*") nil t)
+		   "\\>\\)[[:space:]]*\\(\\[.*\\] +\\)?\\(=\\|<=\\)[^=].*")
+		  nil t)
 	    (push (cons (match-string 0)
 			(match-beginning 0)) res))
 	  (if res
@@ -73,15 +74,15 @@
 	    ;; Otherwise is coming from e submodule. TODO: check input/output!
 	    (while (re-search-backward
 		    (concat
-		     "\\..+( *\\("
+		     "\\..+([[:space:]]*\\("
 		     sym
-		     "\\)\\(\\[.*\\] *\\)?)") nil t)
+		     "\\)\\(\\[.*\\][[:space:]]*\\)?)") nil t)
 	      (push (cons (match-string 0)
 			  (match-beginning 1)) res))
 	    res))))))
 
 (defun vk-search-driver-at-point ()
-  "Goto the driver for symbol at point"
+  "Goto the driver for symbol at point."
   (interactive)
   (let ((res (vk-search-driver (car (vk-sym-at-point)))))
     (when res
@@ -117,7 +118,7 @@ If is an l-val search for loads, if r-val search for drivers."
     (insert-file-contents-literally file)
     (let ((mod-list))
       (while (re-search-forward
-	      "^ *module +\\([0-9a-z_]+\\) *\n* *\\((\\|#(\\|;\\)" nil t)
+	      "^[[:space:]]*module[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*\n*[[:space:]]*\\((\\|#(\\|;\\)" nil t)
 	(add-to-list (list
 		      (match-string-no-properties 1)
 		      file
@@ -172,12 +173,12 @@ If is an l-val search for loads, if r-val search for drivers."
 	    (insert-file-contents-literally (car target))
 	    (goto-char (cadr target))
 	    (set-mark (point))
-	    (re-search-forward "^ *endmodule" nil t)
+	    (re-search-forward "^[[:space:]]*endmodule" nil t)
 	    (narrow-to-region (mark) (point))
 	    (vk-mark-code-blocks)
 	    (goto-char (point-min))
 	    (while (re-search-forward
-		    "\\([0-9a-z_]+\\) +\\([0-9a-z_]+\\) *\\((\\|#(\\)"  nil t)
+		    "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*\\((\\|#(\\)"  nil t)
 	      (unless (or (get-char-property 0 'code (match-string 0))
 			  (get-char-property 0 'comment (match-string 0))
 			  (char-equal (aref (match-string-no-properties 1) 0)
