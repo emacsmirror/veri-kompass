@@ -50,7 +50,7 @@
 (defvar vk-helm-mods nil)
 
 (defconst vk-ignore-keywords '("if" "task" "assert" "disable" "define" "posedge"
-			       "negedge" "int"))
+			       "negedge" "int" "for"))
 
 (defconst vk-sym-regex "[0-9a-z_]+")
 
@@ -345,6 +345,15 @@ output directories whose names match REGEXP."
   (interactive)
   (org-open-at-point))
 
+
+(define-minor-mode veri-kompass-minor-mode
+  "Minor mode to be used into verilog files."
+  :lighter " VK"
+  :keymap (let ((map (make-sparse-keymap)))
+            (define-key map (kbd "C-c d") 'vk-search-driver-at-point)
+	    (define-key map (kbd "C-c l") 'vk-search-load-at-point)
+            map))
+
 (defvar veri-kompassmode-map nil "Keymap for `veri-kompass-mode'")
 
 (progn
@@ -369,3 +378,5 @@ output directories whose names match REGEXP."
 (provide 'veri-kompass-mode)
 
 (add-to-list 'auto-mode-alist '("veri-kompass-bar" . veri-kompass-mode))
+
+(add-hook 'verilog-mode-hook 'veri-kompass-minor-mode)
