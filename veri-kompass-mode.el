@@ -123,6 +123,37 @@ If is an l-val search for loads, if r-val search for drivers."
       ('l-val (vk-search-load-at-point))
       ('r-val (vk-search-driver-at-point)))))
 
+
+(defun directory-files-recursively-with-symlink (dir regexp &optional include-directories)
+  "This function is a variant of directory-files-recursively from files.el.
+Return list of all files under DIR that have file names matching REGEXP.
+This function works recursively following symlinks.
+Files are returned in \"depth first\" order, and files from each directory are
+ sorted in alphabetical order.
+Each file name appears in the returned list in its absolute form.
+Optional argument INCLUDE-DIRECTORIES non-nil means also include in the
+output directories whose names match REGEXP."
+  (let ((result nil)
+	(files nil)
+	;; When DIR is "/", remote file names like "/method:" could
+	;; also be offered.  We shall suppress them.
+	(tramp-mode (and tramp-mode (file-remote-p (expand-file-name dir)))))
+    (dolist (file (sort (file-name-all-completions "" dir)
+			'string<))
+      (unless (member file '("./" "../"))
+	(if (directory-name-p file)
+	    (let* ((leaf (substring file 0 (1- (length file))))
+		   (full-file (expand-file-name leaf dir)))
+	      (setq result
+		    (nconc result (directory-files-recursively
+				   full-file regexp include-directories)))
+	      (when (and include-directories
+			 (string-match regexp leaf))
+		(setq result (nconc result (list full-file)))))
+	  (when (string-match regexp file)
+	    (push (expand-file-name file dir) files)))))
+    (nconc result (nreverse files))))
+
 (defun vk-list-file-in-proj (dir)
   (remove nil
 	  (mapcar (lambda (x)
@@ -130,7 +161,8 @@ If is an l-val search for loads, if r-val search for drivers."
 			    (string-match vk-skip-regexp x))
 			nil
 		      x))
-		  (directory-files-recursively dir vk-extention-regexp))))
+		  (directory-files-recursively-with-symlink
+		   dir vk-extention-regexp))))
 
 (defun vk-list-modules-in-file (file)
   (with-temp-buffer
@@ -138,11 +170,11 @@ If is an l-val search for loads, if r-val search for drivers."
     (let ((mod-list))
       (while (re-search-forward
 	      "^[[:space:]]*module[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*\n*[[:space:]]*\\((\\|#(\\|;\\)" nil t)
-	(add-to-list (list
-		      (match-string-no-properties 1)
-		      file
-		      (point)
-		      (match-string-no-properties 0)) mod-list))
+	(push (list
+	       (match-string-no-properties 1)
+	       file
+	       (point)
+	       (match-string-no-properties 0)) mod-list))
       mod-list)))
 
 (defun vk-list-modules-in-proj (files)
@@ -206,13 +238,13 @@ If is an l-val search for loads, if r-val search for drivers."
 				  vk-ignore-keywords)
 			  (member (match-string-no-properties 2)
 				  vk-ignore-keywords))
-		(add-to-list (cons (list (match-string-no-properties 2)
-					 (match-string-no-properties 1)
-					 (match-beginning 0)
-					 (car target)
-					 (match-string-no-properties 0))
-				   (vk-build-hier-rec
-				    (match-string-no-properties 1))) struct)))
+		(push (cons (list (match-string-no-properties 2)
+				  (match-string-no-properties 1)
+				  (match-beginning 0)
+				  (car target)
+				  (match-string-no-properties 0))
+			    (vk-build-hier-rec
+			     (match-string-no-properties 1))) struct)))
 	    (puthash mod-name (reverse struct) vk-mod-str-hash))
 	(message "cannot find module %s" mod-name)
 	nil))))
