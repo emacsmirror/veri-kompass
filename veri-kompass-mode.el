@@ -317,7 +317,10 @@ output directories whose names match REGEXP."
 		(nth 4 l)
 		(nth 0 l)
 		(nth 0 coords)
-		(car (split-string (nth 2 coords) "\n"))
+		(with-temp-buffer
+		  (insert (nth 2 coords))
+		  (re-search-backward "module.*$" nil t)
+		  (match-string 0))
 		(nth 1 l))
       (car l))))
 
