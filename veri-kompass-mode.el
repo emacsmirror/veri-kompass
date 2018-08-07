@@ -244,12 +244,22 @@ output directories whose names match REGEXP."
 
 (defun vk-forward-balanced ()
   "After an opening parenthesys find the matching closing one."
-  (let ((x 1))
-    (while (and (> x 0)
-		(re-search-forward "\\((\\|)\\)" nil t))
-      (if (equal (match-string 0) "(")
-	  (setq x (1+ x))
-	(setq x (1- x))))))
+  (save-match-data
+    (let ((x 1))
+      (while (and (> x 0)
+		  (re-search-forward "\\((\\|)\\)" nil t))
+	(if (equal (match-string 0) "(")
+	    (setq x (1+ x))
+	  (setq x (1- x)))))))
+
+(defun vk-delete-parameters ()
+  "Remove all #( ... )."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "#(" nil t)
+      (vk-forward-balanced)
+      (delete-region (match-beginning 0) (point)))))
 
 (defun vk-build-hier-rec (mod-name)
   (if (gethash mod-name vk-mod-str-hash) ;; some memoization is gonna help
@@ -263,10 +273,11 @@ output directories whose names match REGEXP."
 	    (set-mark (point))
 	    (re-search-forward "^[[:space:]]*endmodule" nil t)
 	    (narrow-to-region (mark) (point))
+	    (vk-delete-parameters)
 	    (vk-mark-code-blocks)
 	    (goto-char (point-min))
 	    (while (re-search-forward
-		    "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*\\((\\|#(\\)"  nil t)
+		    "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*("  nil t)
 	      (when (save-match-data
 		    (vk-forward-balanced)
 		    (looking-at "[[:space:]]*;"))
