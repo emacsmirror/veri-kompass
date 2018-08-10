@@ -59,6 +59,10 @@
 (defvar vk-hier
   "Holds the design hierarchy.")
 
+(cl-defstruct (vk-mod-inst (:copier nil))
+  "Holds a module instantiations."
+  inst-name mod-name file-name line)
+
 (defun vk-sym-classify-at-point ()
   (save-excursion
     (re-search-forward "[=;]" nil t)
@@ -303,15 +307,22 @@ the matching line used to instantiate the module."
 				    vk-ignore-keywords)
 			    (member (match-string-no-properties 2)
 				    vk-ignore-keywords))
-		  (push (cons (list (match-string-no-properties 2)
-				    (match-string-no-properties 1)
-				    (match-beginning 0) ;; broken
-				    (car target)
-				    (vk-retrive-original-line (match-string 1)
-							      (match-string 2)
-							      (car target)))
-			      (vk-build-hier-rec
-			       (match-string-no-properties 1))) struct))))
+		  (push (let ((curr-inst
+			       (make-vk-mod-inst
+				:mod-name (match-string-no-properties 1)
+				:inst-name (match-string-no-properties 2)
+				:file-name (car target)
+				:line (vk-retrive-original-line (match-string 1)
+								(match-string 2)
+								(car target))))
+			      (sub-hier
+			       (vk-build-hier-rec
+				(match-string-no-properties 1))))
+			  (if sub-hier
+			      (cons curr-inst
+				    (list sub-hier))
+			    curr-inst))
+			struct))))
 	    (puthash mod-name (reverse struct) vk-mod-str-hash))
 	(message "cannot find module %s" mod-name)
 	nil))))
@@ -319,7 +330,11 @@ the matching line used to instantiate the module."
 (defun vk-build-hier (top)
   (let ((target (vk-mod-to-file-name-pos top)))
     (if target
-	(list (list top top (cadr target) (car target) (caddr target))
+	(list (make-vk-mod-inst
+	       :inst-name top
+	       :mod-name top
+	       :file-name (car target)
+	       :line (caddr target))
 	      (vk-build-hier-rec top))
       (message "cannot find top module %s" top))))
 
@@ -336,24 +351,24 @@ the matching line used to instantiate the module."
 	  (goto-char (cadr target)))
       (message "Can't find module: %s" mod-name))))
 
-(defun vk-orgify-link (l)
-  (let ((coords (vk-mod-to-file-name-pos (cadr l))))
+(defun vk-orgify-link (inst)
+  (let ((coords (vk-mod-to-file-name-pos (vk-mod-inst-mod-name inst))))
     (if coords
 	(format "[[%s::%s][%s]] [[%s::%s][%s]]"
-		(nth 3 l)
-		(nth 4 l)
-		(nth 0 l)
+		(vk-mod-inst-file-name inst)
+		(vk-mod-inst-line inst)
+		(vk-mod-inst-inst-name inst)
 		(nth 0 coords)
 		(with-temp-buffer
 		  (insert (nth 2 coords))
 		  (re-search-backward "module.*$" nil t)
 		  (match-string 0))
-		(nth 1 l))
-      (car l))))
+		(vk-mod-inst-mod-name inst))
+      (vk-mod-inst-inst-name inst))))
 
 (defun vk-orgify-hier (hier nest)
   (mapconcat (lambda (h)
-	       (if (consp (car h))
+	       (if (consp h)
 		   (vk-orgify-hier h (1+ nest))
 		 (format "%s %s" (let ((x ""))
 				   (dotimes (_ nest)
