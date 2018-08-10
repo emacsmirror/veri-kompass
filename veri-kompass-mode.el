@@ -201,7 +201,7 @@ output directories whose names match REGEXP."
     (insert-file-contents-literally file)
     (let ((mod-list))
       (while (re-search-forward
-	      "^[[:space:]]*module[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*\n*[[:space:]]*\\((\\|#(\\|;\\)" nil t)
+	      "^[[:space:]]*module[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*\n*[[:space:]]*\\((\\|#(\\|`\\|;\\)" nil t)
 	(push (list
 	       (match-string-no-properties 1)
 	       file
@@ -258,12 +258,18 @@ output directories whose names match REGEXP."
 
 (defun vk-delete-parameters ()
   "Remove all #( ... )."
-  (interactive)
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward "#(" nil t)
       (vk-forward-balanced)
       (delete-region (match-beginning 0) (point)))))
+
+(defun vk-remove-macros ()
+  "Remove all `SOMETHIING ."
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "`[a-z_0-9]+" nil t)
+      (delete-region (match-beginning 0) (match-end 0)))))
 
 (defun vk-retrive-original-line (inst-name mod-name file-name)
   "Given instance name module name and file name for the instantiation return
@@ -292,6 +298,7 @@ the matching line used to instantiate the module."
 	    (re-search-forward "^[[:space:]]*endmodule" nil t)
 	    (narrow-to-region (mark) (point))
 	    (vk-delete-parameters)
+	    (vk-remove-macros)
 	    (vk-mark-code-blocks)
 	    (goto-char (point-min))
 	    (while (re-search-forward
