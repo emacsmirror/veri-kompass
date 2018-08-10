@@ -261,6 +261,20 @@ output directories whose names match REGEXP."
       (vk-forward-balanced)
       (delete-region (match-beginning 0) (point)))))
 
+(defun vk-retrive-original-line (inst-name mod-name file-name)
+  "Given instance name module name and file name for the instantiation return
+the matching line used to instantiate the module."
+  (save-match-data
+    (with-temp-buffer
+      (insert-file-contents file-name)
+      (or (re-search-forward
+	   (format
+	    "\\<%s\\>[ a-z-0-9_.#(),\n]*\\<%s\\>"
+	    inst-name
+	    mod-name) nil t)
+	  (search-forward inst-name))
+      (line-number-at-pos (match-beginning 0)))))
+
 (defun vk-build-hier-rec (mod-name)
   (if (gethash mod-name vk-mod-str-hash) ;; some memoization is gonna help
       (gethash mod-name vk-mod-str-hash)
@@ -279,8 +293,8 @@ output directories whose names match REGEXP."
 	    (while (re-search-forward
 		    "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*("  nil t)
 	      (when (save-match-data
-		    (vk-forward-balanced)
-		    (looking-at "[[:space:]]*;"))
+		      (vk-forward-balanced)
+		      (looking-at "[[:space:]]*;"))
 		(unless (or (get-char-property 0 'code (match-string 0))
 			    (get-char-property 0 'comment (match-string 0))
 			    (char-equal (aref (match-string-no-properties 1) 0)
@@ -291,9 +305,11 @@ output directories whose names match REGEXP."
 				    vk-ignore-keywords))
 		  (push (cons (list (match-string-no-properties 2)
 				    (match-string-no-properties 1)
-				    (match-beginning 0)
+				    (match-beginning 0) ;; broken
 				    (car target)
-				    (match-string-no-properties 0))
+				    (vk-retrive-original-line (match-string 1)
+							      (match-string 2)
+							      (car target)))
 			      (vk-build-hier-rec
 			       (match-string-no-properties 1))) struct))))
 	    (puthash mod-name (reverse struct) vk-mod-str-hash))
@@ -309,7 +325,7 @@ output directories whose names match REGEXP."
 
 (defun vk-visit-module-declaration (mod-name)
   (interactive (list
-                (read-string (format "Module name (%s): " (thing-at-point 'word))
+		(read-string (format "Module name (%s): " (thing-at-point 'word))
 			     nil nil (thing-at-point 'word))))
   (unless mod-name
     (setq mod-name (thing-at-point 'word)))
