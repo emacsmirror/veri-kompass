@@ -271,7 +271,8 @@ output directories whose names match REGEXP."
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward "`[a-z_0-9]+" nil t)
-      (delete-region (match-beginning 0) (match-end 0)))))
+      (unless (equal (match-string 0) "`define")
+	(delete-region (match-beginning 0) (match-end 0))))))
 
 (defun vk-retrive-original-line (inst-name mod-name content)
   "Given instance name module name and the original buffer instantiationcontent
