@@ -206,7 +206,9 @@ output directories whose names match REGEXP."
 	       (match-string-no-properties 1)
 	       file
 	       (point)
-	       (match-string-no-properties 0)) mod-list))
+	       (line-number-at-pos (point))
+	       (match-string-no-properties 0))
+	      mod-list))
       mod-list)))
 
 (defun vk-list-modules-in-proj (files)
@@ -288,51 +290,50 @@ the matching line used to instantiate the module."
 (defun vk-build-hier-rec (mod-name)
   (if (gethash mod-name vk-mod-str-hash) ;; some memoization is gonna help
       (gethash mod-name vk-mod-str-hash)
-    (let ((target (vk-mod-to-file-name-pos mod-name))
-	  (struct nil))
-      (if target
-	  (with-temp-buffer
-	    (insert-file-contents-literally (car target))
-	    (goto-char (cadr target))
-	    (set-mark (point))
-	    (re-search-forward "^[[:space:]]*endmodule" nil t)
-	    (narrow-to-region (mark) (point))
-	    (vk-delete-parameters)
-	    (vk-remove-macros)
-	    (vk-mark-code-blocks)
-	    (goto-char (point-min))
-	    (while (re-search-forward
-		    "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*("  nil t)
-	      (when (save-match-data
-		      (vk-forward-balanced)
-		      (looking-at "[[:space:]]*;"))
-		(unless (or (get-char-property 0 'code (match-string 0))
-			    (get-char-property 0 'comment (match-string 0))
-			    (char-equal (aref (match-string-no-properties 1) 0)
-					?\`)
-			    (member (match-string-no-properties 1)
-				    vk-ignore-keywords)
-			    (member (match-string-no-properties 2)
-				    vk-ignore-keywords))
-		  (push (let ((curr-inst
-			       (make-vk-mod-inst
-				:mod-name (match-string-no-properties 1)
-				:inst-name (match-string-no-properties 2)
-				:file-name (car target)
-				:line (vk-retrive-original-line (match-string 1)
-								(match-string 2)
-								(car target))))
-			      (sub-hier
-			       (vk-build-hier-rec
-				(match-string-no-properties 1))))
-			  (if sub-hier
-			      (cons curr-inst
-				    (list sub-hier))
-			    curr-inst))
-			struct))))
-	    (puthash mod-name (reverse struct) vk-mod-str-hash))
-	(message "cannot find module %s" mod-name)
-	nil))))
+    (puthash
+     mod-name
+     (let ((target (vk-mod-to-file-name-pos mod-name))
+	   (struct nil))
+       (if target
+	   (with-temp-buffer
+	     (insert-file-contents-literally (car target))
+	     (goto-char (cadr target))
+	     (set-mark (point))
+	     (re-search-forward "^[[:space:]]*endmodule" nil t)
+	     (narrow-to-region (mark) (point))
+	     (vk-delete-parameters)
+	     (vk-remove-macros)
+	     (vk-mark-code-blocks)
+	     (goto-char (point-min))
+	     (while (re-search-forward
+		     "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*("  nil t)
+	       (when (save-match-data
+		       (vk-forward-balanced)
+		       (looking-at "[[:space:]]*;"))
+		 (unless (or (get-char-property 0 'code (match-string 0))
+			     (get-char-property 0 'comment (match-string 0))
+			     (char-equal (aref (match-string-no-properties 1) 0)
+					 ?\`)
+			     (member (match-string-no-properties 1)
+				     vk-ignore-keywords)
+			     (member (match-string-no-properties 2)
+				     vk-ignore-keywords))
+		   (push (make-vk-mod-inst
+			  :mod-name (match-string-no-properties 1)
+			  :inst-name (match-string-no-properties 2)
+			  :file-name (car target)
+			  :line (vk-retrive-original-line (match-string 1)
+							  (match-string 2)
+							  (car target))) struct)
+		   (let ((sub-hier
+		   	  (vk-build-hier-rec
+		   	   (match-string-no-properties 1))))
+		     (when sub-hier
+		       (push sub-hier struct)))
+		   )))
+	     (reverse struct))
+	 (message "cannot find module %s" mod-name)
+	 nil)) vk-mod-str-hash)))
 
 (defun vk-build-hier (top)
   (let ((target (vk-mod-to-file-name-pos top)))
@@ -367,7 +368,7 @@ the matching line used to instantiate the module."
 		(vk-mod-inst-inst-name inst)
 		(nth 0 coords)
 		(with-temp-buffer
-		  (insert (nth 2 coords))
+		  (insert (nth 3 coords))
 		  (re-search-backward "module.*$" nil t)
 		  (match-string 0))
 		(vk-mod-inst-mod-name inst))
@@ -383,24 +384,25 @@ the matching line used to instantiate the module."
 				   x)
 			 (vk-orgify-link h)))) hier "\n"))
 
-(defun veri-kompass (dir)
+(defun veri-kompass (dir &optional top-name)
   (interactive "D")
   (setq vk-mod-str-hash (make-hash-table :test 'equal))
   (setq vk-module-list
 	(vk-list-modules-in-proj
 	 (vk-list-file-in-proj dir)))
-  (setq vk-helm-mods (helm-build-sync-source "specify top module"
-		       :candidates (mapcar (lambda (x)
-					     (car x)) vk-module-list)))
-  (setq vk-hier (vk-build-hier
-		 (helm :sources vk-helm-mods
-		       :default vk-top
-		       :buffer "*helm-veri-kompass-module-top-select*")))
+  (unless top-name
+    (setq top-name (helm :sources
+			 (helm-build-sync-source "specify top module"
+			   :candidates (mapcar (lambda (x)
+						 (car x)) vk-module-list))
+			 :default vk-top
+			 :buffer "*helm-veri-kompass-module-top-select*")))
+  (setq vk-helm-mods top-name)
+  (setq vk-hier (vk-build-hier top-name))
   (switch-to-buffer-other-window "veri-kompass-bar")
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (insert "*")
-    (insert (vk-orgify-hier vk-hier 0)))
+    (insert (vk-orgify-hier vk-hier 1)))
   (read-only-mode)
   (veri-kompass-mode)
   (whitespace-turn-off))
