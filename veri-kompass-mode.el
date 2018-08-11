@@ -49,6 +49,8 @@
 
 (defvar vk-helm-mods nil)
 
+(defconst vk-bar-name "*veri-kompass-bar*")
+
 (defconst vk-ignore-keywords '("if" "task" "assert" "disable" "define" "posedge"
 			       "negedge" "int" "for" "logic" "wire" "reg"))
 
@@ -58,6 +60,9 @@
 
 (defvar vk-hier
   "Holds the design hierarchy.")
+
+(defvar vk-curr-select
+  "Holds the position of the current instance selected (if any).")
 
 (cl-defstruct (vk-mod-inst (:copier nil))
   "Holds a module instantiations."
@@ -408,12 +413,13 @@ output directories whose names match REGEXP."
   "Create and populate the hierarky bar."
   (setq vk-hier (vk-build-hier top-name))
   (message "Parsing done.")
-  (switch-to-buffer-other-window "veri-kompass-bar")
+  (switch-to-buffer-other-window vk-bar-name)
   (let ((inhibit-read-only t))
     (erase-buffer)
     (insert (vk-orgify-hier vk-hier 1)))
   (read-only-mode)
   (veri-kompass-mode)
+  (highlight-regexp "->\\|<-" 'alert-urgent-face)
   (whitespace-turn-off))
 
 (defun veri-kompass (dir &optional top-name)
@@ -437,6 +443,53 @@ output directories whose names match REGEXP."
   (interactive)
   (org-open-at-point))
 
+(defun vk-goto-vk-bar ()
+  (unless (equal (buffer-name) vk-bar-name)
+    (switch-to-buffer-other-window vk-bar-name)))
+
+(defun vk-unmark ()
+  (interactive)
+  (vk-goto-vk-bar)
+  (save-excursion
+    (when vk-curr-select
+      (let ((inhibit-read-only t))
+	(goto-char vk-curr-select)
+	(replace-regexp " ->" "")
+	(replace-regexp " <-" "")
+	(setq vk-curr-select nil)))))
+
+(defun vk-mark ()
+  (interactive)
+  (vk-goto-vk-bar)
+  (vk-mark-and-jump)
+  (switch-to-buffer-other-window vk-bar-name))
+
+(defun vk-mark-and-jump ()
+  (interactive)
+  (vk-goto-vk-bar)
+  (save-excursion
+    (when vk-curr-select
+      (vk-unmark))
+    (let ((inhibit-read-only t))
+      (re-search-backward "^")
+      (re-search-forward "\\*+")
+      (setq vk-curr-select (point))
+      (insert " ->")
+      (re-search-forward "$")
+      (insert " <-")
+      (backward-char 4)
+      (vk-open-at-point))))
+
+(defun vk-go-up ()
+  (interactive)
+  (vk-goto-vk-bar)
+  (if vk-curr-select
+      (progn
+	(goto-char vk-curr-select)
+	(vk-unmark)
+	(org-up-element)
+	(vk-mark))
+    (message "Select an instance first.")))
 
 (define-minor-mode veri-kompass-minor-mode
   "Minor mode to be used into verilog files."
@@ -451,6 +504,10 @@ output directories whose names match REGEXP."
 (progn
   (setq veri-kompass-mode-map (make-sparse-keymap))
   (define-key veri-kompass-mode-map (kbd "RET") 'vk-open-at-point)
+  (define-key veri-kompass-mode-map (kbd "m") 'vk-mark)
+  (define-key veri-kompass-mode-map (kbd "x") 'vk-mark-and-jump)
+  (define-key veri-kompass-mode-map (kbd "u") 'vk-go-up)
+  (define-key veri-kompass-mode-map (kbd "q") 'vk-unmark)
   (define-key veri-kompass-mode-map (kbd "S-<right>") 'windmove-right)
   (define-key veri-kompass-mode-map (kbd "S-<left>") 'windmove-left)
   (define-key veri-kompass-mode-map (kbd "S-<up>") 'windmove-up)
