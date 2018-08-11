@@ -63,6 +63,15 @@
   "Holds a module instantiations."
   inst-name mod-name file-name line)
 
+(defmacro vk-make-thread (f)
+  (if (fboundp 'make-thread)
+      `(make-thread ,f)
+    `(funcall ,f)))
+
+(defmacro vk-thread-yield ()
+  (when (fboundp 'thread-yield)
+    '(thread-yield)))
+
 (defun vk-sym-classify-at-point ()
   (save-excursion
     (re-search-forward "[=;]" nil t)
@@ -225,7 +234,7 @@ output directories whose names match REGEXP."
     (while (re-search-forward "//.*" nil t) ;; TODO add other comment style
       (put-text-property (match-beginning 0) (point) 'comment t))))
 
-(defun vk-mark-code-blocks ()
+(defsubst vk-mark-code-blocks ()
   "Mark all text within code blocks with property 'code."
   (interactive)
   (save-mark-and-excursion
@@ -248,7 +257,7 @@ output directories whose names match REGEXP."
 			 (1- nest)))))
 	(put-text-property (mark) (point) 'code t)))))
 
-(defun vk-forward-balanced ()
+(defsubst vk-forward-balanced ()
   "After an opening parenthesys find the matching closing one."
   (save-match-data
     (let ((x 1))
@@ -258,7 +267,7 @@ output directories whose names match REGEXP."
 	    (setq x (1+ x))
 	  (setq x (1- x)))))))
 
-(defun vk-delete-parameters ()
+(defsubst vk-delete-parameters ()
   "Remove all #( ... )."
   (save-excursion
     (goto-char (point-min))
@@ -266,7 +275,7 @@ output directories whose names match REGEXP."
       (vk-forward-balanced)
       (delete-region (match-beginning 0) (point)))))
 
-(defun vk-remove-macros ()
+(defsubst vk-remove-macros ()
   "Remove all `SOMETHIING ."
   (save-excursion
     (goto-char (point-min))
@@ -290,6 +299,7 @@ output directories whose names match REGEXP."
       (line-number-at-pos (match-beginning 0)))))
 
 (defun vk-build-hier-rec (mod-name)
+  (vk-thread-yield)
   (if (gethash mod-name vk-mod-str-hash) ;; some memoization is gonna help
       (gethash mod-name vk-mod-str-hash)
     (puthash
@@ -305,13 +315,18 @@ output directories whose names match REGEXP."
 	     (set-mark (point))
 	     (re-search-forward "^[[:space:]]*endmodule" nil t)
 	     (narrow-to-region (mark) (point))
+	     (vk-thread-yield)
 	     (vk-delete-parameters)
+	     (vk-thread-yield)
 	     (vk-remove-macros)
+	     (vk-thread-yield)
 	     (vk-mark-code-blocks)
+	     (vk-thread-yield)
 	     (goto-char (point-min))
 	     (while (re-search-forward
 		     "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*("  nil t)
 	       (when (save-match-data
+		       (vk-thread-yield)
 		       (vk-forward-balanced)
 		       (looking-at "[[:space:]]*;"))
 		 (unless (or (get-char-property 0 'code (match-string 0))
@@ -322,6 +337,7 @@ output directories whose names match REGEXP."
 				     vk-ignore-keywords)
 			     (member (match-string-no-properties 2)
 				     vk-ignore-keywords))
+		   (vk-thread-yield)
 		   (push (make-vk-mod-inst
 			  :mod-name (match-string-no-properties 1)
 			  :inst-name (match-string-no-properties 2)
@@ -336,7 +352,7 @@ output directories whose names match REGEXP."
 		       (push sub-hier struct)))
 		   )))
 	     (reverse struct))
-	 (message "cannot find module %s" mod-name)
+	 (message "Cannot find module %s" mod-name)
 	 nil)) vk-mod-str-hash)))
 
 (defun vk-build-hier (top)
@@ -348,7 +364,7 @@ output directories whose names match REGEXP."
 	       :file-name (car target)
 	       :line (caddr target))
 	      (vk-build-hier-rec top))
-      (message "cannot find top module %s" top))))
+      (message "Cannot find top module %s" top))))
 
 (defun vk-visit-module-declaration (mod-name)
   (interactive (list
@@ -388,6 +404,18 @@ output directories whose names match REGEXP."
 				   x)
 			 (vk-orgify-link h)))) hier "\n"))
 
+(defun vk-compute-and-create-bar (top-name)
+  "Create and populate the hierarky bar."
+  (setq vk-hier (vk-build-hier top-name))
+  (message "Parsing done.")
+  (switch-to-buffer-other-window "veri-kompass-bar")
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert (vk-orgify-hier vk-hier 1)))
+  (read-only-mode)
+  (veri-kompass-mode)
+  (whitespace-turn-off))
+
 (defun veri-kompass (dir &optional top-name)
   (interactive "D")
   (setq vk-mod-str-hash (make-hash-table :test 'equal))
@@ -401,15 +429,9 @@ output directories whose names match REGEXP."
 						 (car x)) vk-module-list))
 			 :default vk-top
 			 :buffer "*helm-veri-kompass-module-top-select*")))
-  (setq vk-helm-mods top-name)
-  (setq vk-hier (vk-build-hier top-name))
-  (switch-to-buffer-other-window "veri-kompass-bar")
-  (let ((inhibit-read-only t))
-    (erase-buffer)
-    (insert (vk-orgify-hier vk-hier 1)))
-  (read-only-mode)
-  (veri-kompass-mode)
-  (whitespace-turn-off))
+  (message "Parsing design...")
+  (vk-make-thread (lambda ()
+		    (vk-compute-and-create-bar top-name))))
 
 (defun vk-open-at-point (&rest _)
   (interactive)
