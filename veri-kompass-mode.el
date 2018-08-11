@@ -273,12 +273,13 @@ output directories whose names match REGEXP."
     (while (re-search-forward "`[a-z_0-9]+" nil t)
       (delete-region (match-beginning 0) (match-end 0)))))
 
-(defun vk-retrive-original-line (inst-name mod-name file-name)
-  "Given instance name module name and file name for the instantiation return
-the matching line used to instantiate the module."
+(defun vk-retrive-original-line (inst-name mod-name content)
+  "Given instance name module name and the original buffer instantiationcontent
+ return the module instantiation line."
   (save-match-data
     (with-temp-buffer
-      (insert-file-contents file-name)
+      (insert content)
+      (goto-char (point-min))
       (or (re-search-forward
 	   (format
 	    "\\<%s\\>[ a-z-0-9_.#(),\n]*\\<%s\\>"
@@ -293,10 +294,12 @@ the matching line used to instantiate the module."
     (puthash
      mod-name
      (let ((target (vk-mod-to-file-name-pos mod-name))
-	   (struct nil))
+	   (struct)
+	   (orig-buff))
        (if target
 	   (with-temp-buffer
 	     (insert-file-contents-literally (car target))
+	     (setq orig-buff (buffer-string))
 	     (goto-char (cadr target))
 	     (set-mark (point))
 	     (re-search-forward "^[[:space:]]*endmodule" nil t)
@@ -324,7 +327,7 @@ the matching line used to instantiate the module."
 			  :file-name (car target)
 			  :line (vk-retrive-original-line (match-string 1)
 							  (match-string 2)
-							  (car target))) struct)
+							  orig-buff)) struct)
 		   (let ((sub-hier
 		   	  (vk-build-hier-rec
 		   	   (match-string-no-properties 1))))
