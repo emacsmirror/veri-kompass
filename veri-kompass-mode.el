@@ -496,6 +496,24 @@ output directories whose names match REGEXP."
 	(vk-mark))
     (message "Select an instance first.")))
 
+(defun vk-full-mark-position()
+  "Return a list with the current instance position in the hierarchy."
+  (save-excursion
+    (let ((res)
+	  (p))
+      (while
+	  (progn
+	    (re-search-backward "^")
+	    (setq p (point))
+	    (search-forward "][")
+	    (re-search-forward "\\(.*\\)]] ")
+	    (push
+	     (match-string-no-properties 1) res)
+	    (unless (equal p (point-min))
+	      (org-up-element)
+	      t)))
+      res)))
+
 (define-minor-mode veri-kompass-minor-mode
   "Minor mode to be used into verilog files."
   :lighter " VK"
