@@ -58,10 +58,10 @@
 
 (defconst vk-ops-regex "[\]\[ ()|&\+-/%{}=<>]")
 
-(defvar vk-hier
+(defvar vk-hier nil
   "Holds the design hierarchy.")
 
-(defvar vk-curr-select
+(defvar vk-curr-select nil
   "Holds the position of the current instance selected (if any).")
 
 (cl-defstruct (vk-mod-inst (:copier nil))
