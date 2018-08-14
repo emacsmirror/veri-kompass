@@ -40,6 +40,11 @@
 (defcustom vk-skip-regexp "^.*CONFORMTO.*$"
   "Regexp matching files to be skip")
 
+(defface vk-inst-marked-face
+  '((t :foreground "red1"))
+  "Face for marking instance selected."
+  :group 'veri-kompass-mode)
+
 (defvar vk-module-list nil)
 
 (defvar vk-module-hier nil)
@@ -419,7 +424,7 @@ output directories whose names match REGEXP."
     (insert (vk-orgify-hier vk-hier 1)))
   (read-only-mode)
   (veri-kompass-mode)
-  (highlight-regexp "->\\|<-" 'alert-urgent-face)
+  (highlight-regexp "->\\|<-" 'vk-inst-marked-face)
   (whitespace-turn-off))
 
 (defun veri-kompass (dir &optional top-name)
