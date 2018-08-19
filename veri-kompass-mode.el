@@ -226,7 +226,7 @@ output directories whose names match REGEXP."
     (insert-file-contents-literally file)
     (let ((mod-list))
       (while (re-search-forward
-	      "^[[:space:]]*module[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*\n*[[:space:]]*\\((\\|#(\\|`\\|;\\)" nil t)
+	      "^[[:space:]]*module[[:space:]\n]+\\([0-9a-z_]+\\)[[:space:]]*\n*[[:space:]]*\\((\\|#(\\|`\\|;\\)" nil t)
 	(push (list
 	       (match-string-no-properties 1)
 	       file
