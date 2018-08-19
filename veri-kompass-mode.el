@@ -143,6 +143,12 @@
 				    :candidates res)
 			 :buffer "*helm-veri-kompass-driver-select*"))))))
 
+(defun vk-module-name-at-point ()
+  "Return the module containing the current point."
+  (save-excursion
+    (re-search-backward "module[[:space:]\n]+\\([0-9a-z_]+\\)")
+    (match-string-no-properties 1)))
+
 (defun vk-search-load (sym)
   (save-excursion
     (let ((loads ())
