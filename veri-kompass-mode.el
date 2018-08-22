@@ -146,6 +146,7 @@
 (defun vk-module-name-at-point ()
   "Return the module containing the current point."
   (save-excursion
+    (forward-word 2)
     (re-search-backward "module[[:space:]\n]+\\([0-9a-z_]+\\)")
     (match-string-no-properties 1)))
 
@@ -452,33 +453,42 @@ output directories whose names match REGEXP."
 
 (defun vk-open-at-point (&rest _)
   (interactive)
-  (org-open-at-point))
+  (org-open-at-point)
+  (window-buffer))
 
-(defun vk-goto-vk-bar ()
-  (unless (equal (buffer-name) vk-bar-name)
-    (switch-to-buffer-other-window vk-bar-name)))
+(defun vk-curr-mark ()
+  "Return a pair (module-name . instance-name) for the current mark."
+  (if vk-curr-select
+    (save-excursion
+      (switch-to-buffer-other-window vk-bar-name)
+      (goto-char (point-min))
+      ;; enjoy
+      (re-search-forward "-> \\[\\[.*\\]\\[\\(.*\\)\\]\\] \\[\\[.*\\]\\[\\(.*\\)\\]\\] <-")
+      (cons (match-string-no-properties 2)
+	    (match-string-no-properties 1)))
+    (message "Select an instance first.")
+    nil))
 
 (defun vk-unmark ()
   (interactive)
-  (vk-goto-vk-bar)
-  (save-excursion
-    (when vk-curr-select
-      (let ((inhibit-read-only t))
-	(goto-char vk-curr-select)
-	(replace-regexp " ->" "")
-	(replace-regexp " <-" "")
-	(setq vk-curr-select nil)))))
+  (with-current-buffer vk-bar-name
+    (save-excursion
+      (when vk-curr-select
+	(let ((inhibit-read-only t))
+	  (goto-char vk-curr-select)
+	  (replace-regexp " ->" "")
+	  (replace-regexp " <-" "")
+	  (setq vk-curr-select nil))))))
 
 (defun vk-mark ()
   (interactive)
-  (vk-goto-vk-bar)
-  (vk-mark-and-jump)
-  (switch-to-buffer-other-window vk-bar-name))
+  (with-current-buffer vk-bar-name
+    (vk-mark-and-jump)
+    (switch-to-buffer-other-window vk-bar-name)))
 
 (defun vk-mark-and-jump ()
   (interactive)
-  (vk-goto-vk-bar)
-  (save-excursion
+  (with-current-buffer vk-bar-name
     (when vk-curr-select
       (vk-unmark))
     (let ((inhibit-read-only t))
@@ -491,16 +501,36 @@ output directories whose names match REGEXP."
       (backward-char 4)
       (vk-open-at-point))))
 
-(defun vk-go-up ()
+(defun vk-go-up (&optional jump)
+  "Move up into the hierarchy."
   (interactive)
-  (vk-goto-vk-bar)
-  (if vk-curr-select
-      (progn
-	(goto-char vk-curr-select)
-	(vk-unmark)
-	(org-up-element)
-	(vk-mark))
-    (message "Select an instance first.")))
+  (with-current-buffer vk-bar-name
+    (if vk-curr-select
+	(progn
+	  (goto-char vk-curr-select)
+	  (vk-unmark)
+	  (org-up-element)
+	  (if jump
+	      (vk-mark-and-jump)
+	    (vk-mark)))
+      (message "Select an instance first."))))
+
+(defun vk-go-up-from-point ()
+  "Move up into the hierarchy starting from point into a verilog file."
+  (interactive)
+  (if vk-curr-select ;; sanity check missing
+      (let* ((signal-name (word-at-point))
+	     (curr-mark (vk-curr-mark))
+	     (mark-mod (car curr-mark))
+	     (mark-inst (cdr curr-mark))
+	     (module-name (vk-module-name-at-point)))
+	(if (not (equal module-name mark-mod))
+	    (print "Marked module is different from current one.")
+	  (set-buffer (vk-go-up 'jump))
+	  (search-forward mark-inst)
+	  (re-search-forward
+	   (concat "\\." signal-name "[[:space:]]*\\((\\|\n\\)"))))
+    "Please mark current instance into hierarchy buffer."))
 
 (defun vk-full-mark-position()
   "Return a list with the current instance position in the hierarchy."
