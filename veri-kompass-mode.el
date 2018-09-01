@@ -98,50 +98,57 @@
 
 (defun vk-search-driver (sym)
   (save-excursion
-    (goto-char (point-min))
-    ;; First case is easy, in case is a module input.
-    (if (re-search-forward (concat
-			    "input +\\(wire +\\)?\\(logic +\\)?\\[*.*\] +\\("
-			    sym
-			    "\\)") nil t)
-	(list (cons (match-string 0) (match-beginning 3)))
-      (if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\("
-				     sym
-				     "\\)") nil t)
-	  (list (cons (match-string 0) (match-beginning 3)))
-	(goto-char (point-max))
-	;; Here we handle direct assignments.
-	(let ((res ()))
-	  (while (re-search-backward
-		  (concat
-		   "\\(\\<"
-		   sym
-		   "\\>\\)[[:space:]]*\\(\\[.*\\] +\\)?\\(=\\|<=\\)[^=].*")
-		  nil t)
-	    (push (cons (match-string 0)
-			(match-beginning 0)) res))
-	  (if res
-	      res
-	    ;; Otherwise is coming from e submodule. TODO: check input/output!
+    (let ((point-orig (point)))
+      (goto-char (point-min))
+      ;; First case is easy, in case is a module input.
+      (if (re-search-forward (concat
+			      "input +\\(wire +\\)?\\(logic +\\)?\\[*.*\] +\\("
+			      sym
+			      "\\)") nil t)
+	  (if (equal (match-beginning 3) point-orig)
+	      'go-up
+	    (list (cons (match-string 0) (match-beginning 3))))
+	(if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\("
+				       sym
+				       "\\)") nil t)
+	    (if (equal (match-beginning 3) point-orig)
+		'go-up
+	      (list (cons (match-string 0) (match-beginning 3))))
+	  (goto-char (point-max))
+	  ;; Here we handle direct assignments.
+	  (let ((res ()))
 	    (while (re-search-backward
 		    (concat
-		     "\\..+([[:space:]]*\\("
+		     "\\(\\<"
 		     sym
-		     "\\)\\(\\[.*\\][[:space:]]*\\)?)") nil t)
+		     "\\>\\)[[:space:]]*\\(\\[.*\\] +\\)?\\(=\\|<=\\)[^=].*")
+		    nil t)
 	      (push (cons (match-string 0)
-			  (match-beginning 1)) res))
-	    res))))))
+			  (match-beginning 0)) res))
+	    (if res
+		res
+	      ;; Otherwise is coming from e submodule. TODO: check input/output!
+	      (while (re-search-backward
+		      (concat
+		       "\\..+([[:space:]]*\\("
+		       sym
+		       "\\)\\(\\[.*\\][[:space:]]*\\)?)") nil t)
+		(push (cons (match-string 0)
+			    (match-beginning 1)) res))
+	      res)))))))
 
 (defun vk-search-driver-at-point ()
   "Goto the driver for symbol at point."
   (interactive)
   (let ((res (vk-search-driver (car (vk-sym-at-point)))))
     (when res
-      (if (equal (length res) 1)
-	  (goto-char (cdar res))
-	(goto-char (helm :sources (helm-build-sync-source "select driver line"
-				    :candidates res)
-			 :buffer "*helm-veri-kompass-driver-select*"))))))
+      (if (eq res 'go-up)
+	  (vk-go-up-from-point)
+	(if (equal (length res) 1)
+	    (goto-char (cdar res))
+	  (goto-char (helm :sources (helm-build-sync-source "select driver line"
+				      :candidates res)
+			   :buffer "*helm-veri-kompass-driver-select*")))))))
 
 (defun vk-module-name-at-point ()
   "Return the module containing the current point."
