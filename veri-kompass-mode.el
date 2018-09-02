@@ -569,9 +569,9 @@ output directories whose names match REGEXP."
 
 (progn
   (setq veri-kompass-mode-map (make-sparse-keymap))
-  (define-key veri-kompass-mode-map (kbd "RET") 'vk-open-at-point)
+  (define-key veri-kompass-mode-map (kbd "o") 'vk-open-at-point)
   (define-key veri-kompass-mode-map (kbd "m") 'vk-mark)
-  (define-key veri-kompass-mode-map (kbd "x") 'vk-mark-and-jump)
+  (define-key veri-kompass-mode-map (kbd "RET") 'vk-mark-and-jump)
   (define-key veri-kompass-mode-map (kbd "u") 'vk-go-up)
   (define-key veri-kompass-mode-map (kbd "q") 'vk-unmark)
   (define-key veri-kompass-mode-map (kbd "S-<right>") 'windmove-right)
