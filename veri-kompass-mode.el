@@ -69,6 +69,9 @@
 (defvar vk-curr-select nil
   "Holds the position of the current instance selected (if any).")
 
+(defvar vk-history nil
+  "Holds the instance selection history.")
+
 (cl-defstruct (vk-mod-inst (:copier nil))
   "Holds a module instantiations."
   inst-name mod-name file-name line)
@@ -502,11 +505,26 @@ output directories whose names match REGEXP."
       (re-search-backward "^")
       (re-search-forward "\\*+")
       (setq vk-curr-select (point))
+      (unless (equal (car vk-history) (point)) ;; should count lines
+	(push (point) vk-history))
       (insert " ->")
       (re-search-forward "$")
       (insert " <-")
       (backward-char 4)
       (vk-open-at-point))))
+
+(defun vk-go-backward ()
+  "Move backward into the instance selection history."
+  (interactive)
+  (if vk-history
+      (progn
+	(setq vk-history (cdr vk-history))
+	(with-current-buffer vk-bar-name
+          (vk-unmark)
+	  (when (car vk-history)
+	    (goto-char (car vk-history))
+	    (vk-mark))))
+      (message "History is empty")))
 
 (defun vk-go-up (&optional jump)
   "Move up into the hierarchy."
@@ -574,6 +592,7 @@ output directories whose names match REGEXP."
   (define-key veri-kompass-mode-map (kbd "RET") 'vk-mark-and-jump)
   (define-key veri-kompass-mode-map (kbd "u") 'vk-go-up)
   (define-key veri-kompass-mode-map (kbd "q") 'vk-unmark)
+  (define-key veri-kompass-mode-map (kbd "b") 'vk-go-backward)
   (define-key veri-kompass-mode-map (kbd "S-<right>") 'windmove-right)
   (define-key veri-kompass-mode-map (kbd "S-<left>") 'windmove-left)
   (define-key veri-kompass-mode-map (kbd "S-<up>") 'windmove-up)
