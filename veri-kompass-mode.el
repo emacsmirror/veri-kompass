@@ -480,17 +480,21 @@ output directories whose names match REGEXP."
     nil))
 
 (defun vk-unmark ()
+  "Remove mark on current instance selected."
   (interactive)
   (with-current-buffer vk-bar-name
     (save-excursion
       (when vk-curr-select
 	(let ((inhibit-read-only t))
-	  (goto-char vk-curr-select)
-	  (replace-regexp " ->" "")
-	  (replace-regexp " <-" "")
+	  (goto-char (point-min))
+	  (re-search-forward " ->" nil t)
+	  (replace-match "")
+	  (re-search-forward " <-" nil t)
+	  (replace-match "")
 	  (setq vk-curr-select nil))))))
 
 (defun vk-mark ()
+  "Mark the instance at point."
   (interactive)
   (with-current-buffer vk-bar-name
     (vk-mark-and-jump)
