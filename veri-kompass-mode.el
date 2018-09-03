@@ -99,7 +99,7 @@
     (re-search-forward vk-sym-regex nil t)
     (cons (match-string-no-properties 0) (vk-sym-classify-at-point))))
 
-(defun vk-search-driver (sym)
+(defun vk-search-driver (sym &optional internal)
   (save-excursion
     (let ((point-orig (point)))
       (goto-char (point-min))
@@ -108,13 +108,13 @@
 			      "input +\\(wire +\\)?\\(logic +\\)?\\[*.*\] +\\("
 			      sym
 			      "\\)") nil t)
-	  (if (equal (match-beginning 3) point-orig)
+	  (if (and (equal (match-beginning 3) point-orig) (not internal))
 	      'go-up
 	    (list (cons (match-string 0) (match-beginning 3))))
 	(if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\("
 				       sym
 				       "\\)") nil t)
-	    (if (equal (match-beginning 3) point-orig)
+	    (if (and (equal (match-beginning 3) point-orig) (not internal))
 		'go-up
 	      (list (cons (match-string 0) (match-beginning 3))))
 	  (goto-char (point-max))
@@ -163,7 +163,7 @@
 (defun vk-search-load (sym)
   (save-excursion
     (let ((loads ())
-	  (drivers (mapcar #'cdr (vk-search-driver sym))))
+	  (drivers (mapcar #'cdr (vk-search-driver sym 'internal))))
       (goto-char (point-max))
       (while (re-search-backward (concat "^.*\\(\\<" sym "\\>\\).*") nil t)
 	(unless (member (match-beginning 1) drivers)
