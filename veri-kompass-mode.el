@@ -48,13 +48,13 @@
 (require 'hashtable-print-readable)
 
 (defcustom vk-top ""
-  "Default top module name")
+  "Default top module name.")
 
 (defcustom vk-extention-regexp ".+\\.s?v$"
-  "Regexp matching project files")
+  "Regexp matching project files.")
 
 (defcustom vk-skip-regexp "^.*CONFORMTO.*$"
-  "Regexp matching files to be skip")
+  "Regexp matching files to be skip.")
 
 (defface vk-inst-marked-face
   '((t :foreground "red1"))
@@ -66,7 +66,7 @@
 (defvar vk-module-hier nil)
 
 (defvar vk-mod-str-hash nil
-  "This hash contains module structure hashed per module name")
+  "This hash contains module structure hashed per module name.")
 
 (defvar vk-helm-mods nil)
 
@@ -93,15 +93,19 @@
   inst-name mod-name file-name line)
 
 (defmacro vk-make-thread (f)
+  "Make thread if threading is available.
+Argument F is the thread name."
   (if (fboundp 'make-thread)
       `(make-thread ,f)
     `(funcall ,f)))
 
 (defmacro vk-thread-yield ()
+  "Yield a thread if threading is available."
   (when (fboundp 'thread-yield)
     '(thread-yield)))
 
 (defun vk-sym-classify-at-point ()
+  "Classify if a symbol is l-val or r-val."
   (save-excursion
     (re-search-forward "[=;]" nil t)
     (pcase (aref (match-string-no-properties 0) 0)
@@ -116,6 +120,8 @@
     (cons (match-string-no-properties 0) (vk-sym-classify-at-point))))
 
 (defun vk-search-driver (sym &optional internal)
+  "Given the symbol SYM search for it's driver.
+INTERNAL if the search is limited to the current module."
   (save-excursion
     (let ((point-orig (point)))
       (goto-char (point-min))
@@ -177,6 +183,7 @@
     (match-string-no-properties 1)))
 
 (defun vk-search-load (sym)
+  "Given the simbol SYM seach for all its loads."
   (save-excursion
     (let ((loads ())
 	  (drivers (mapcar #'cdr (vk-search-driver sym 'internal))))
@@ -209,7 +216,7 @@ If is an l-val search for loads, if r-val search for drivers."
 
 
 (defun directory-files-recursively-with-symlink (dir regexp &optional include-directories)
-  "This function is a variant of directory-files-recursively from files.el.
+  "This function is a variant of ‘directory-files-recursively’ from files.el.
 Return list of all files under DIR that have file names matching REGEXP.
 This function works recursively following symlinks.
 Files are returned in \"depth first\" order, and files from each directory are
@@ -239,6 +246,7 @@ output directories whose names match REGEXP."
     (nconc result (nreverse files))))
 
 (defun vk-list-file-in-proj (dir)
+  "Return a list of all project files present in DIR ver.excluding the one specified by ‘vk-skip-regexp’."
   (remove nil
 	  (mapcar (lambda (x)
 		    (if (or (string-match "/\\." x)
@@ -249,6 +257,7 @@ output directories whose names match REGEXP."
 		   dir vk-extention-regexp))))
 
 (defun vk-list-modules-in-file (file)
+  "Return the list of all declared modules present in FILE."
   (with-temp-buffer
     (insert-file-contents-literally file)
     (let ((mod-list))
@@ -264,13 +273,16 @@ output directories whose names match REGEXP."
       mod-list)))
 
 (defun vk-list-modules-in-proj (files)
+  "Return the list of all declared modules present in FILES."
   (remove nil
 	  (cl-mapcan 'vk-list-modules-in-file files)))
 
 (defun vk-mod-to-file-name-pos (name)
+  "Given the module name NAME return its position." ;; improve
   (cdr (assoc name vk-module-list)))
 
 (defun vk-mark-comments ()
+  "Scanning a buffer mark all comments with property 'comment."
   (interactive)
   (save-mark-and-excursion
     (goto-char (point-min))
@@ -327,8 +339,7 @@ output directories whose names match REGEXP."
 	(delete-region (match-beginning 0) (match-end 0))))))
 
 (defun vk-retrive-original-line (inst-name mod-name content)
-  "Given instance name module name and the original buffer instantiationcontent
- return the module instantiation line."
+  "Given instance name module name and the original buffer instantiationcontent return the module instantiation line."
   (save-match-data
     (with-temp-buffer
       (insert content)
