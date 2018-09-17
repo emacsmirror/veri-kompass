@@ -28,8 +28,24 @@
 
 ;;; Code:
 
+(require 'custom)
+(require 'cl-macs)
+(require 'pcase)
+(require 'sort)
+(require 'cl-extra)
+(require 'files)
+(require 'format)
+(require 'whitespace)
+(require 'loaddefs)
+(require 'simple)
+(require 'helm-source)
 (require 'helm)
+(require 'message)
+(require 'thingatpt)
 (require 'org)
+(require 'easy-mmode)
+(require 'derived)
+(require 'hashtable-print-readable)
 
 (defcustom vk-top ""
   "Default top module name")
