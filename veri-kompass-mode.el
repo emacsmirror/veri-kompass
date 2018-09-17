@@ -640,8 +640,10 @@ output directories whose names match REGEXP."
   "Veri-Kompass"
   "Handle verilog project hierarchy.")
 
-(provide 'veri-kompass-mode)
-
 (add-to-list 'auto-mode-alist '("veri-kompass-bar" . veri-kompass-mode))
 
 (add-hook 'verilog-mode-hook 'veri-kompass-minor-mode)
+
+(provide 'veri-kompass-mode)
+
+;;; veri-kompass-mode.el ends here
