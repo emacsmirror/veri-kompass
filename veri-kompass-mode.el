@@ -189,7 +189,7 @@ INTERNAL if the search is limited to the current module."
     (match-string-no-properties 1)))
 
 (defun vk-search-load (sym)
-  "Given the simbol SYM seach for all its loads."
+  "Given the simbol SYM search for all its loads."
   (save-excursion
     (let ((loads ())
 	  (drivers (mapcar #'cdr (vk-search-driver sym 'internal))))
@@ -345,7 +345,7 @@ output directories whose names match REGEXP."
 	(delete-region (match-beginning 0) (match-end 0))))))
 
 (defun vk-retrive-original-line (inst-name mod-name content)
-  "Given instance name module name and the original buffer instantiationcontent return the module instantiation line."
+  "Given instance name INST-NAME module name MOD-NAME and the original buffer instantiation content CONTENT return the module instantiation line."
   (save-match-data
     (with-temp-buffer
       (insert content)
@@ -359,6 +359,8 @@ output directories whose names match REGEXP."
       (line-number-at-pos (match-beginning 0)))))
 
 (defun vk-build-hier-rec (mod-name)
+  "Given MOD-NAME return a list rappresenting the design hierarchy.
+This recursive function call itself walking all the verilog design."
   (vk-thread-yield)
   (if (gethash mod-name vk-mod-str-hash) ;; some memoization is gonna help
       (gethash mod-name vk-mod-str-hash)
@@ -416,6 +418,8 @@ output directories whose names match REGEXP."
 	 nil)) vk-mod-str-hash)))
 
 (defun vk-build-hier (top)
+  "Given a TOP module return the hierarcky.
+This is the entry point function for parsing the design."
   (let ((target (vk-mod-to-file-name-pos top)))
     (if target
 	(list (make-vk-mod-inst
@@ -440,6 +444,7 @@ output directories whose names match REGEXP."
       (message "Can't find module: %s" mod-name))))
 
 (defun vk-orgify-link (inst)
+  "Given a module instance INST return an org link."
   (let ((coords (vk-mod-to-file-name-pos (vk-mod-inst-mod-name inst))))
     (if coords
 	(format "[[%s::%s][%s]] [[%s::%s][%s]]"
@@ -455,6 +460,7 @@ output directories whose names match REGEXP."
       (vk-mod-inst-inst-name inst))))
 
 (defun vk-orgify-hier (hier nest)
+  "Given an hierarcky HIER and a nesting level NEST produce an org rappresentation of the hierarcky."
   (mapconcat (lambda (h)
 	       (if (consp h)
 		   (vk-orgify-hier h (1+ nest))
@@ -465,7 +471,7 @@ output directories whose names match REGEXP."
 			 (vk-orgify-link h)))) hier "\n"))
 
 (defun vk-compute-and-create-bar (top-name)
-  "Create and populate the hierarky bar."
+  "Given a top module TOP-NAME create and populate the hierarky bar."
   (setq vk-hier (vk-build-hier top-name))
   (message "Parsing done.")
   (switch-to-buffer-other-window vk-bar-name)
@@ -478,6 +484,10 @@ output directories whose names match REGEXP."
   (whitespace-turn-off))
 
 (defun veri-kompass (dir &optional top-name)
+  "Enable Veri-Kompass.
+Veri-Kompass is a verilog codebase navigation facility for Emacs.
+The codebase to be parsed will be in directory DIR.
+The decendent parsing will start from module TOP-NAME."
   (interactive "D")
   (setq vk-mod-str-hash (make-hash-table :test 'equal))
   (setq vk-module-list
@@ -495,6 +505,7 @@ output directories whose names match REGEXP."
 		    (vk-compute-and-create-bar top-name))))
 
 (defun vk-open-at-point (&rest _)
+  "Follow link into the hierarchy bar."
   (interactive)
   (org-open-at-point)
   (window-buffer))
@@ -534,6 +545,7 @@ output directories whose names match REGEXP."
     (switch-to-buffer-other-window vk-bar-name)))
 
 (defun vk-mark-and-jump ()
+  "Mark the instance at point and jump to its definition."
   (interactive)
   (with-current-buffer vk-bar-name
     (when vk-curr-select
@@ -564,7 +576,8 @@ output directories whose names match REGEXP."
       (message "History is empty")))
 
 (defun vk-go-up (&optional jump)
-  "Move up into the hierarchy."
+  "Move up into the hierarchy.
+If JUMP is not nil follow link too."
   (interactive)
   (with-current-buffer vk-bar-name
     (if vk-curr-select
@@ -620,7 +633,7 @@ output directories whose names match REGEXP."
 	    (define-key map (kbd "C-c l") 'vk-search-load-at-point)
             map))
 
-(defvar veri-kompassmode-map nil "Keymap for `veri-kompass-mode'")
+(defvar veri-kompassmode-map nil "Keymap for `veri-kompass-mode'.")
 
 (progn
   (setq veri-kompass-mode-map (make-sparse-keymap))
@@ -644,7 +657,7 @@ output directories whose names match REGEXP."
   veri-kompass-mode
   org-mode
   "Veri-Kompass"
-  "Handle verilog project hierarchy.")
+  "Generate and handle verilog project hierarchy.")
 
 (add-to-list 'auto-mode-alist '("veri-kompass-bar" . veri-kompass-mode))
 
