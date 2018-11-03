@@ -430,19 +430,6 @@ This is the entry point function for parsing the design."
 	      (vk-build-hier-rec top))
       (message "Cannot find top module %s" top))))
 
-(defun vk-visit-module-declaration (mod-name)
-  (interactive (list
-		(read-string (format "Module name (%s): " (thing-at-point 'word))
-			     nil nil (thing-at-point 'word))))
-  (unless mod-name
-    (setq mod-name (thing-at-point 'word)))
-  (let ((target (vk-mod-to-file-name-pos mod-name)))
-    (if target
-	(progn
-	  (find-file (car target))
-	  (goto-char (cadr target)))
-      (message "Can't find module: %s" mod-name))))
-
 (defun vk-orgify-link (inst)
   "Given a module instance INST return an org link."
   (let ((coords (vk-mod-to-file-name-pos (vk-mod-inst-mod-name inst))))
