@@ -5,7 +5,7 @@
 ;; Maintainer: andrea_corallo@yahoo.it
 ;; Package: veri-kompass
 ;; Homepage: https://gitlab.com/koral/veri-kompass
-;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
+;; Package-Requires: ((emacs "25") (cl-lib "0.5"))
 ;; Keywords: language, verilog, hard-ware
 
 ;; This file is not part of GNU Emacs.
