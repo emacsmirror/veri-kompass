@@ -1,12 +1,13 @@
-;;; veri-kompass.el --- verilog codebase navigation facility for Emacs  -*- lexical-binding:t -*-
+;;; veri-kompass.el --- verilog codebase navigation facility for GNU Emacs  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2018 Andrea Corallo
 
 ;; Maintainer: andrea_corallo@yahoo.it
 ;; Package: veri-kompass
 ;; Homepage: https://gitlab.com/koral/veri-kompass
+;; Version: 0.2
 ;; Package-Requires: ((emacs "25") (cl-lib "0.5"))
-;; Keywords: language, verilog, hard-ware
+;; Keywords: languages, extensions, verilog, hardware, rtl
 
 ;; This file is not part of GNU Emacs.
 
