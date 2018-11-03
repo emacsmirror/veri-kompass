@@ -48,13 +48,19 @@
 (require 'hashtable-print-readable)
 
 (defcustom vk-top ""
-  "Default top module name.")
+  "Default top module name."
+  :type 'string
+  :group 'veri-kompass-mode)
 
 (defcustom vk-extention-regexp ".+\\.s?v$"
-  "Regexp matching project files.")
+  "Regexp matching project files."
+  :type 'string
+  :group 'veri-kompass-mode)
 
 (defcustom vk-skip-regexp "^.*CONFORMTO.*$"
-  "Regexp matching files to be skip.")
+  "Regexp matching files to be skip."
+  :type 'string
+  :group 'veri-kompass-mode)
 
 (defface vk-inst-marked-face
   '((t :foreground "red1"))
