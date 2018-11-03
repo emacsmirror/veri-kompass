@@ -654,6 +654,6 @@ The decendent parsing will start from module TOP-NAME."
 
 (add-hook 'verilog-mode-hook 'veri-kompass-minor-mode)
 
-(provide 'veri-kompass-mode)
+(provide 'veri-kompass)
 
 ;;; veri-kompass.el ends here
