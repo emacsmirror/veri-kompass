@@ -624,7 +624,7 @@ The decendent parsing will start from module TOP-NAME."
 	    (define-key map (kbd "C-c l") 'veri-kompass-search-load-at-point)
             map))
 
-(defvar veri-kompassmode-map nil "Keymap for `veri-kompass-mode'.")
+(defvar veri-kompass-mode-map nil "Keymap for `veri-kompass-mode'.")
 
 (progn
   (setq veri-kompass-mode-map (make-sparse-keymap))
