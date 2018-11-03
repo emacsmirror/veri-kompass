@@ -50,70 +50,70 @@
 (require 'derived)
 (require 'hashtable-print-readable)
 
-(defcustom vk-top ""
+(defcustom veri-kompass-top ""
   "Default top module name."
   :type 'string
   :group 'veri-kompass-mode)
 
-(defcustom vk-extention-regexp ".+\\.s?v$"
+(defcustom veri-kompass-extention-regexp ".+\\.s?v$"
   "Regexp matching project files."
   :type 'string
   :group 'veri-kompass-mode)
 
-(defcustom vk-skip-regexp "^.*CONFORMTO.*$"
+(defcustom veri-kompass-skip-regexp "^.*CONFORMTO.*$"
   "Regexp matching files to be skip."
   :type 'string
   :group 'veri-kompass-mode)
 
-(defface vk-inst-marked-face
+(defface veri-kompass-inst-marked-face
   '((t :foreground "red1"))
   "Face for marking instance selected."
   :group 'veri-kompass-mode)
 
-(defvar vk-module-list nil)
+(defvar veri-kompass-module-list nil)
 
-(defvar vk-module-hier nil)
+(defvar veri-kompass-module-hier nil)
 
-(defvar vk-mod-str-hash nil
+(defvar veri-kompass-mod-str-hash nil
   "This hash contains module structure hashed per module name.")
 
-(defvar vk-helm-mods nil)
+(defvar veri-kompass-helm-mods nil)
 
-(defconst vk-bar-name "*veri-kompass-bar*")
+(defconst veri-kompass-bar-name "*veri-kompass-bar*")
 
-(defconst vk-ignore-keywords '("if" "task" "assert" "disable" "define" "posedge"
-			       "negedge" "int" "for" "logic" "wire" "reg"))
+(defconst veri-kompass-ignore-keywords '("if" "task" "assert" "disable" "define" "posedge"
+					 "negedge" "int" "for" "logic" "wire" "reg"))
 
-(defconst vk-sym-regex "[0-9a-z_]+")
+(defconst veri-kompass-sym-regex "[0-9a-z_]+")
 
-(defconst vk-ops-regex "[\]\[ ()|&\+-/%{}=<>]")
+(defconst veri-kompass-ops-regex "[\]\[ ()|&\+-/%{}=<>]")
 
-(defvar vk-hier nil
+(defvar veri-kompass-hier nil
   "Holds the design hierarchy.")
 
-(defvar vk-curr-select nil
+(defvar veri-kompass-curr-select nil
   "Holds the position of the current instance selected (if any).")
 
-(defvar vk-history nil
+(defvar veri-kompass-history nil
   "Holds the instance selection history.")
 
-(cl-defstruct (vk-mod-inst (:copier nil))
+(cl-defstruct (veri-kompass-mod-inst (:copier nil))
   "Holds a module instantiations."
   inst-name mod-name file-name line)
 
-(defmacro vk-make-thread (f)
+(defmacro veri-kompass-make-thread (f)
   "Make thread if threading is available.
 Argument F is the thread name."
   (if (fboundp 'make-thread)
       `(make-thread ,f)
     `(funcall ,f)))
 
-(defmacro vk-thread-yield ()
+(defmacro veri-kompass-thread-yield ()
   "Yield a thread if threading is available."
   (when (fboundp 'thread-yield)
     '(thread-yield)))
 
-(defun vk-sym-classify-at-point ()
+(defun veri-kompass-sym-classify-at-point ()
   "Classify if a symbol is l-val or r-val."
   (save-excursion
     (re-search-forward "[=;]" nil t)
@@ -121,14 +121,14 @@ Argument F is the thread name."
       (?\= 'l-val)
       (?\; 'r-val))))
 
-(defun vk-sym-at-point ()
+(defun veri-kompass-sym-at-point ()
   "Return an a-list containing (sym-name . 'r-val) or (sym-name . 'l-val)."
   (save-excursion
-    (re-search-backward vk-ops-regex nil t)
-    (re-search-forward vk-sym-regex nil t)
-    (cons (match-string-no-properties 0) (vk-sym-classify-at-point))))
+    (re-search-backward veri-kompass-ops-regex nil t)
+    (re-search-forward veri-kompass-sym-regex nil t)
+    (cons (match-string-no-properties 0) (veri-kompass-sym-classify-at-point))))
 
-(defun vk-search-driver (sym &optional internal)
+(defun veri-kompass-search-driver (sym &optional internal)
   "Given the symbol SYM search for it's driver.
 INTERNAL if the search is limited to the current module."
   (save-excursion
@@ -171,31 +171,31 @@ INTERNAL if the search is limited to the current module."
 			    (match-beginning 1)) res))
 	      res)))))))
 
-(defun vk-search-driver-at-point ()
+(defun veri-kompass-search-driver-at-point ()
   "Goto the driver for symbol at point."
   (interactive)
-  (let ((res (vk-search-driver (car (vk-sym-at-point)))))
+  (let ((res (veri-kompass-search-driver (car (veri-kompass-sym-at-point)))))
     (when res
       (if (eq res 'go-up)
-	  (vk-go-up-from-point)
+	  (veri-kompass-go-up-from-point)
 	(if (equal (length res) 1)
 	    (goto-char (cdar res))
 	  (goto-char (helm :sources (helm-build-sync-source "select driver line"
 				      :candidates res)
 			   :buffer "*helm-veri-kompass-driver-select*")))))))
 
-(defun vk-module-name-at-point ()
+(defun veri-kompass-module-name-at-point ()
   "Return the module containing the current point."
   (save-excursion
     (forward-word 2)
     (re-search-backward "module[[:space:]\n]+\\([0-9a-z_]+\\)")
     (match-string-no-properties 1)))
 
-(defun vk-search-load (sym)
+(defun veri-kompass-search-load (sym)
   "Given the simbol SYM search for all its loads."
   (save-excursion
     (let ((loads ())
-	  (drivers (mapcar #'cdr (vk-search-driver sym 'internal))))
+	  (drivers (mapcar #'cdr (veri-kompass-search-driver sym 'internal))))
       (goto-char (point-max))
       (while (re-search-backward (concat "^.*\\(\\<" sym "\\>\\).*") nil t)
 	(unless (member (match-beginning 1) drivers)
@@ -203,10 +203,10 @@ INTERNAL if the search is limited to the current module."
 		loads)))
       loads)))
 
-(defun vk-search-load-at-point ()
+(defun veri-kompass-search-load-at-point ()
   "Goto the loads for symbol at point."
   (interactive)
-  (let ((res (vk-search-load (car (vk-sym-at-point)))))
+  (let ((res (veri-kompass-search-load (car (veri-kompass-sym-at-point)))))
     (when res
       (if (equal (length res) 1)
 	  (goto-char (cdar res))
@@ -214,17 +214,17 @@ INTERNAL if the search is limited to the current module."
 				    :candidates res)
 			 :buffer "*helm-veri-kompass-load-select*"))))))
 
-(defun vk-follow-from-point ()
+(defun veri-kompass-follow-from-point ()
   "Follow symbol at point.
 If is an l-val search for loads, if r-val search for drivers."
   (interactive)
-  (let ((sym (vk-sym-at-point)))
+  (let ((sym (veri-kompass-sym-at-point)))
     (pcase (cdr sym)
-      ('l-val (vk-search-load-at-point))
-      ('r-val (vk-search-driver-at-point)))))
+      ('l-val (veri-kompass-search-load-at-point))
+      ('r-val (veri-kompass-search-driver-at-point)))))
 
 
-(defun vk-directory-files-recursively-with-symlink (dir regexp &optional include-directories)
+(defun veri-kompass-directory-files-recursively-with-symlink (dir regexp &optional include-directories)
   "This function is a variant of ‘directory-files-recursively’ from files.el.
 Return list of all files under DIR that have file names matching REGEXP.
 This function works recursively following symlinks.
@@ -254,18 +254,18 @@ output directories whose names match REGEXP."
 	    (push (expand-file-name file dir) files)))))
     (nconc result (nreverse files))))
 
-(defun vk-list-file-in-proj (dir)
-  "Return a list of all project files present in DIR ver.excluding the one specified by ‘vk-skip-regexp’."
+(defun veri-kompass-list-file-in-proj (dir)
+  "Return a list of all project files present in DIR ver.excluding the one specified by ‘veri-kompass-skip-regexp’."
   (remove nil
 	  (mapcar (lambda (x)
 		    (if (or (string-match "/\\." x)
-			    (string-match vk-skip-regexp x))
+			    (string-match veri-kompass-skip-regexp x))
 			nil
 		      x))
-		  (vk-directory-files-recursively-with-symlink
-		   dir vk-extention-regexp))))
+		  (veri-kompass-directory-files-recursively-with-symlink
+		   dir veri-kompass-extention-regexp))))
 
-(defun vk-list-modules-in-file (file)
+(defun veri-kompass-list-modules-in-file (file)
   "Return the list of all declared modules present in FILE."
   (with-temp-buffer
     (insert-file-contents-literally file)
@@ -281,16 +281,16 @@ output directories whose names match REGEXP."
 	      mod-list))
       mod-list)))
 
-(defun vk-list-modules-in-proj (files)
+(defun veri-kompass-list-modules-in-proj (files)
   "Return the list of all declared modules present in FILES."
   (remove nil
-	  (cl-mapcan 'vk-list-modules-in-file files)))
+	  (cl-mapcan 'veri-kompass-list-modules-in-file files)))
 
-(defun vk-mod-to-file-name-pos (name)
+(defun veri-kompass-mod-to-file-name-pos (name)
   "Given the module name NAME return its position." ;; improve
-  (cdr (assoc name vk-module-list)))
+  (cdr (assoc name veri-kompass-module-list)))
 
-(defun vk-mark-comments ()
+(defun veri-kompass-mark-comments ()
   "Scanning a buffer mark all comments with property 'comment."
   (interactive)
   (save-mark-and-excursion
@@ -298,11 +298,11 @@ output directories whose names match REGEXP."
     (while (re-search-forward "//.*" nil t) ;; TODO add other comment style
       (put-text-property (match-beginning 0) (point) 'comment t))))
 
-(defsubst vk-mark-code-blocks ()
+(defsubst veri-kompass-mark-code-blocks ()
   "Mark all text within code blocks with property 'code."
   (interactive)
   (save-mark-and-excursion
-    (vk-mark-comments)
+    (veri-kompass-mark-comments)
     (goto-char (point-min))
     (while (search-forward "begin" nil t)
       (unless (get-char-property 0 'comment (match-string 0))
@@ -321,7 +321,7 @@ output directories whose names match REGEXP."
 			 (1- nest)))))
 	(put-text-property (mark) (point) 'code t)))))
 
-(defsubst vk-forward-balanced ()
+(defsubst veri-kompass-forward-balanced ()
   "After an opening parenthesys find the matching closing one."
   (save-match-data
     (let ((x 1))
@@ -331,15 +331,15 @@ output directories whose names match REGEXP."
 	    (setq x (1+ x))
 	  (setq x (1- x)))))))
 
-(defsubst vk-delete-parameters ()
+(defsubst veri-kompass-delete-parameters ()
   "Remove all #( ... )."
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward "#(" nil t)
-      (vk-forward-balanced)
+      (veri-kompass-forward-balanced)
       (delete-region (match-beginning 0) (point)))))
 
-(defsubst vk-remove-macros ()
+(defsubst veri-kompass-remove-macros ()
   "Remove all `SOMETHIING ."
   (save-excursion
     (goto-char (point-min))
@@ -347,7 +347,7 @@ output directories whose names match REGEXP."
       (unless (equal (match-string 0) "`define")
 	(delete-region (match-beginning 0) (match-end 0))))))
 
-(defun vk-retrive-original-line (inst-name mod-name content)
+(defun veri-kompass-retrive-original-line (inst-name mod-name content)
   "Given instance name INST-NAME module name MOD-NAME and the original buffer instantiation content CONTENT return the module instantiation line."
   (save-match-data
     (with-temp-buffer
@@ -361,15 +361,15 @@ output directories whose names match REGEXP."
 	  (search-forward inst-name))
       (line-number-at-pos (match-beginning 0)))))
 
-(defun vk-build-hier-rec (mod-name)
+(defun veri-kompass-build-hier-rec (mod-name)
   "Given MOD-NAME return a list rappresenting the design hierarchy.
 This recursive function call itself walking all the verilog design."
-  (vk-thread-yield)
-  (if (gethash mod-name vk-mod-str-hash) ;; some memoization is gonna help
-      (gethash mod-name vk-mod-str-hash)
+  (veri-kompass-thread-yield)
+  (if (gethash mod-name veri-kompass-mod-str-hash) ;; some memoization is gonna help
+      (gethash mod-name veri-kompass-mod-str-hash)
     (puthash
      mod-name
-     (let ((target (vk-mod-to-file-name-pos mod-name))
+     (let ((target (veri-kompass-mod-to-file-name-pos mod-name))
 	   (struct)
 	   (orig-buff))
        (if target
@@ -380,203 +380,203 @@ This recursive function call itself walking all the verilog design."
 	     (set-mark (point))
 	     (re-search-forward "^[[:space:]]*endmodule" nil t)
 	     (narrow-to-region (mark) (point))
-	     (vk-thread-yield)
-	     (vk-delete-parameters)
-	     (vk-thread-yield)
-	     (vk-remove-macros)
-	     (vk-thread-yield)
-	     (vk-mark-code-blocks)
-	     (vk-thread-yield)
+	     (veri-kompass-thread-yield)
+	     (veri-kompass-delete-parameters)
+	     (veri-kompass-thread-yield)
+	     (veri-kompass-remove-macros)
+	     (veri-kompass-thread-yield)
+	     (veri-kompass-mark-code-blocks)
+	     (veri-kompass-thread-yield)
 	     (goto-char (point-min))
 	     (while (re-search-forward
 		     "\\([0-9a-z_]+\\)[[:space:]]+\\([0-9a-z_]+\\)[[:space:]]*("  nil t)
 	       (when (save-match-data
-		       (vk-thread-yield)
-		       (vk-forward-balanced)
+		       (veri-kompass-thread-yield)
+		       (veri-kompass-forward-balanced)
 		       (looking-at "[[:space:]]*;"))
 		 (unless (or (get-char-property 0 'code (match-string 0))
 			     (get-char-property 0 'comment (match-string 0))
 			     (char-equal (aref (match-string-no-properties 1) 0)
 					 ?\`)
 			     (member (match-string-no-properties 1)
-				     vk-ignore-keywords)
+				     veri-kompass-ignore-keywords)
 			     (member (match-string-no-properties 2)
-				     vk-ignore-keywords))
-		   (vk-thread-yield)
-		   (push (make-vk-mod-inst
+				     veri-kompass-ignore-keywords))
+		   (veri-kompass-thread-yield)
+		   (push (make-veri-kompass-mod-inst
 			  :mod-name (match-string-no-properties 1)
 			  :inst-name (match-string-no-properties 2)
 			  :file-name (car target)
-			  :line (vk-retrive-original-line (match-string 1)
-							  (match-string 2)
-							  orig-buff)) struct)
+			  :line (veri-kompass-retrive-original-line (match-string 1)
+								    (match-string 2)
+								    orig-buff)) struct)
 		   (let ((sub-hier
-		   	  (vk-build-hier-rec
+		   	  (veri-kompass-build-hier-rec
 		   	   (match-string-no-properties 1))))
 		     (when sub-hier
 		       (push sub-hier struct)))
 		   )))
 	     (reverse struct))
 	 (message "Cannot find module %s" mod-name)
-	 nil)) vk-mod-str-hash)))
+	 nil)) veri-kompass-mod-str-hash)))
 
-(defun vk-build-hier (top)
+(defun veri-kompass-build-hier (top)
   "Given a TOP module return the hierarcky.
 This is the entry point function for parsing the design."
-  (let ((target (vk-mod-to-file-name-pos top)))
+  (let ((target (veri-kompass-mod-to-file-name-pos top)))
     (if target
-	(list (make-vk-mod-inst
+	(list (make-veri-kompass-mod-inst
 	       :inst-name top
 	       :mod-name top
 	       :file-name (car target)
 	       :line (caddr target))
-	      (vk-build-hier-rec top))
+	      (veri-kompass-build-hier-rec top))
       (message "Cannot find top module %s" top))))
 
-(defun vk-orgify-link (inst)
+(defun veri-kompass-orgify-link (inst)
   "Given a module instance INST return an org link."
-  (let ((coords (vk-mod-to-file-name-pos (vk-mod-inst-mod-name inst))))
+  (let ((coords (veri-kompass-mod-to-file-name-pos (veri-kompass-mod-inst-mod-name inst))))
     (if coords
 	(format "[[%s::%s][%s]] [[%s::%s][%s]]"
-		(vk-mod-inst-file-name inst)
-		(vk-mod-inst-line inst)
-		(vk-mod-inst-inst-name inst)
+		(veri-kompass-mod-inst-file-name inst)
+		(veri-kompass-mod-inst-line inst)
+		(veri-kompass-mod-inst-inst-name inst)
 		(nth 0 coords)
 		(with-temp-buffer
 		  (insert (nth 3 coords))
 		  (re-search-backward "module.*$" nil t)
 		  (match-string 0))
-		(vk-mod-inst-mod-name inst))
-      (vk-mod-inst-inst-name inst))))
+		(veri-kompass-mod-inst-mod-name inst))
+      (veri-kompass-mod-inst-inst-name inst))))
 
-(defun vk-orgify-hier (hier nest)
+(defun veri-kompass-orgify-hier (hier nest)
   "Given an hierarcky HIER and a nesting level NEST produce an org rappresentation of the hierarcky."
   (mapconcat (lambda (h)
 	       (if (consp h)
-		   (vk-orgify-hier h (1+ nest))
+		   (veri-kompass-orgify-hier h (1+ nest))
 		 (format "%s %s" (let ((x ""))
 				   (dotimes (_ nest)
 				     (setq x (concat x "*")))
 				   x)
-			 (vk-orgify-link h)))) hier "\n"))
+			 (veri-kompass-orgify-link h)))) hier "\n"))
 
-(defun vk-compute-and-create-bar (top-name)
+(defun veri-kompass-compute-and-create-bar (top-name)
   "Given a top module TOP-NAME create and populate the hierarky bar."
-  (setq vk-hier (vk-build-hier top-name))
+  (setq veri-kompass-hier (veri-kompass-build-hier top-name))
   (message "Parsing done.")
-  (switch-to-buffer-other-window vk-bar-name)
+  (switch-to-buffer-other-window veri-kompass-bar-name)
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (insert (vk-orgify-hier vk-hier 1)))
+    (insert (veri-kompass-orgify-hier veri-kompass-hier 1)))
   (read-only-mode)
   (veri-kompass-mode)
-  (highlight-regexp "->\\|<-" 'vk-inst-marked-face)
+  (highlight-regexp "->\\|<-" 'veri-kompass-inst-marked-face)
   (whitespace-turn-off))
 
-(defun vk-open-at-point (&rest _)
+(defun veri-kompass-open-at-point (&rest _)
   "Follow link into the hierarchy bar."
   (interactive)
   (org-open-at-point)
   (window-buffer))
 
-(defun vk-curr-mark ()
+(defun veri-kompass-curr-mark ()
   "Return a pair (module-name . instance-name) for the current mark."
-  (if vk-curr-select
-    (save-excursion
-      (switch-to-buffer-other-window vk-bar-name)
-      (goto-char (point-min))
-      ;; enjoy
-      (re-search-forward "-> \\[\\[.*\\]\\[\\(.*\\)\\]\\] \\[\\[.*\\]\\[\\(.*\\)\\]\\] <-")
-      (cons (match-string-no-properties 2)
-	    (match-string-no-properties 1)))
+  (if veri-kompass-curr-select
+      (save-excursion
+	(switch-to-buffer-other-window veri-kompass-bar-name)
+	(goto-char (point-min))
+	;; enjoy
+	(re-search-forward "-> \\[\\[.*\\]\\[\\(.*\\)\\]\\] \\[\\[.*\\]\\[\\(.*\\)\\]\\] <-")
+	(cons (match-string-no-properties 2)
+	      (match-string-no-properties 1)))
     (message "Select an instance first.")
     nil))
 
-(defun vk-unmark ()
+(defun veri-kompass-unmark ()
   "Remove mark on current instance selected."
   (interactive)
-  (with-current-buffer vk-bar-name
+  (with-current-buffer veri-kompass-bar-name
     (save-excursion
-      (when vk-curr-select
+      (when veri-kompass-curr-select
 	(let ((inhibit-read-only t))
 	  (goto-char (point-min))
 	  (re-search-forward " ->" nil t)
 	  (replace-match "")
 	  (re-search-forward " <-" nil t)
 	  (replace-match "")
-	  (setq vk-curr-select nil))))))
+	  (setq veri-kompass-curr-select nil))))))
 
-(defun vk-mark ()
+(defun veri-kompass-mark ()
   "Mark the instance at point."
   (interactive)
-  (with-current-buffer vk-bar-name
-    (vk-mark-and-jump)
-    (switch-to-buffer-other-window vk-bar-name)))
+  (with-current-buffer veri-kompass-bar-name
+    (veri-kompass-mark-and-jump)
+    (switch-to-buffer-other-window veri-kompass-bar-name)))
 
-(defun vk-mark-and-jump ()
+(defun veri-kompass-mark-and-jump ()
   "Mark the instance at point and jump to its definition."
   (interactive)
-  (with-current-buffer vk-bar-name
-    (when vk-curr-select
-      (vk-unmark))
+  (with-current-buffer veri-kompass-bar-name
+    (when veri-kompass-curr-select
+      (veri-kompass-unmark))
     (let ((inhibit-read-only t))
       (re-search-backward "^")
       (re-search-forward "\\*+")
-      (setq vk-curr-select (point))
-      (unless (equal (car vk-history) (point)) ;; should count lines
-	(push (point) vk-history))
+      (setq veri-kompass-curr-select (point))
+      (unless (equal (car veri-kompass-history) (point)) ;; should count lines
+	(push (point) veri-kompass-history))
       (insert " ->")
       (re-search-forward "$")
       (insert " <-")
       (backward-char 4)
-      (vk-open-at-point))))
+      (veri-kompass-open-at-point))))
 
-(defun vk-go-backward ()
+(defun veri-kompass-go-backward ()
   "Move backward into the instance selection history."
   (interactive)
-  (if vk-history
+  (if veri-kompass-history
       (progn
-	(setq vk-history (cdr vk-history))
-	(with-current-buffer vk-bar-name
-          (vk-unmark)
-	  (when (car vk-history)
-	    (goto-char (car vk-history))
-	    (vk-mark))))
-      (message "History is empty")))
+	(setq veri-kompass-history (cdr veri-kompass-history))
+	(with-current-buffer veri-kompass-bar-name
+          (veri-kompass-unmark)
+	  (when (car veri-kompass-history)
+	    (goto-char (car veri-kompass-history))
+	    (veri-kompass-mark))))
+    (message "History is empty")))
 
-(defun vk-go-up (&optional jump)
+(defun veri-kompass-go-up (&optional jump)
   "Move up into the hierarchy.
 If JUMP is not nil follow link too."
   (interactive)
-  (with-current-buffer vk-bar-name
-    (if vk-curr-select
+  (with-current-buffer veri-kompass-bar-name
+    (if veri-kompass-curr-select
 	(progn
-	  (goto-char vk-curr-select)
-	  (vk-unmark)
+	  (goto-char veri-kompass-curr-select)
+	  (veri-kompass-unmark)
 	  (org-up-element)
 	  (if jump
-	      (vk-mark-and-jump)
-	    (vk-mark)))
+	      (veri-kompass-mark-and-jump)
+	    (veri-kompass-mark)))
       (message "Select an instance first."))))
 
-(defun vk-go-up-from-point ()
+(defun veri-kompass-go-up-from-point ()
   "Move up into the hierarchy starting from point into a verilog file."
   (interactive)
-  (if vk-curr-select ;; sanity check missing
+  (if veri-kompass-curr-select ;; sanity check missing
       (let* ((signal-name (word-at-point))
-	     (curr-mark (vk-curr-mark))
+	     (curr-mark (veri-kompass-curr-mark))
 	     (mark-mod (car curr-mark))
 	     (mark-inst (cdr curr-mark))
-	     (module-name (vk-module-name-at-point)))
+	     (module-name (veri-kompass-module-name-at-point)))
 	(if (not (equal module-name mark-mod))
 	    (print "Marked module is different from current one.")
-	  (set-buffer (vk-go-up 'jump))
+	  (set-buffer (veri-kompass-go-up 'jump))
 	  (search-forward mark-inst)
 	  (re-search-forward
 	   (concat "\\." signal-name "[[:space:]]*\\((\\|\n\\)"))))
     "Please mark current instance into hierarchy buffer."))
 
-(defun vk-full-mark-position()
+(defun veri-kompass-full-mark-position()
   "Return a list with the current instance position in the hierarchy."
   (save-excursion
     (let ((res)
@@ -601,39 +601,39 @@ Veri-Kompass is a verilog codebase navigation facility for Emacs.
 The codebase to be parsed will be in directory DIR.
 The decendent parsing will start from module TOP-NAME."
   (interactive "D")
-  (setq vk-mod-str-hash (make-hash-table :test 'equal))
-  (setq vk-module-list
-	(vk-list-modules-in-proj
-	 (vk-list-file-in-proj dir)))
+  (setq veri-kompass-mod-str-hash (make-hash-table :test 'equal))
+  (setq veri-kompass-module-list
+	(veri-kompass-list-modules-in-proj
+	 (veri-kompass-list-file-in-proj dir)))
   (unless top-name
     (setq top-name (helm :sources
 			 (helm-build-sync-source "specify top module"
 			   :candidates (mapcar (lambda (x)
-						 (car x)) vk-module-list))
-			 :default vk-top
+						 (car x)) veri-kompass-module-list))
+			 :default veri-kompass-top
 			 :buffer "*helm-veri-kompass-module-top-select*")))
   (message "Parsing design...")
-  (vk-make-thread (lambda ()
-		    (vk-compute-and-create-bar top-name))))
+  (veri-kompass-make-thread (lambda ()
+			      (veri-kompass-compute-and-create-bar top-name))))
 
 (define-minor-mode veri-kompass-minor-mode
   "Minor mode to be used into verilog files."
   :lighter " VK"
   :keymap (let ((map (make-sparse-keymap)))
-            (define-key map (kbd "C-c d") 'vk-search-driver-at-point)
-	    (define-key map (kbd "C-c l") 'vk-search-load-at-point)
+            (define-key map (kbd "C-c d") 'veri-kompass-search-driver-at-point)
+	    (define-key map (kbd "C-c l") 'veri-kompass-search-load-at-point)
             map))
 
 (defvar veri-kompassmode-map nil "Keymap for `veri-kompass-mode'.")
 
 (progn
   (setq veri-kompass-mode-map (make-sparse-keymap))
-  (define-key veri-kompass-mode-map (kbd "o") 'vk-open-at-point)
-  (define-key veri-kompass-mode-map (kbd "m") 'vk-mark)
-  (define-key veri-kompass-mode-map (kbd "RET") 'vk-mark-and-jump)
-  (define-key veri-kompass-mode-map (kbd "u") 'vk-go-up)
-  (define-key veri-kompass-mode-map (kbd "q") 'vk-unmark)
-  (define-key veri-kompass-mode-map (kbd "b") 'vk-go-backward)
+  (define-key veri-kompass-mode-map (kbd "o") 'veri-kompass-open-at-point)
+  (define-key veri-kompass-mode-map (kbd "m") 'veri-kompass-mark)
+  (define-key veri-kompass-mode-map (kbd "RET") 'veri-kompass-mark-and-jump)
+  (define-key veri-kompass-mode-map (kbd "u") 'veri-kompass-go-up)
+  (define-key veri-kompass-mode-map (kbd "q") 'veri-kompass-unmark)
+  (define-key veri-kompass-mode-map (kbd "b") 'veri-kompass-go-backward)
   (define-key veri-kompass-mode-map (kbd "S-<right>") 'windmove-right)
   (define-key veri-kompass-mode-map (kbd "S-<left>") 'windmove-left)
   (define-key veri-kompass-mode-map (kbd "S-<up>") 'windmove-up)
