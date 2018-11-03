@@ -2,4 +2,4 @@ GNU Emacs extension that parse a Verilog design and provide some navigation faci
 
 [![asciicast](https://asciinema.org/a/191880.png)](https://asciinema.org/a/191880)
 
-Alpha state
+Beta state
