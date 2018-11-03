@@ -470,27 +470,6 @@ This is the entry point function for parsing the design."
   (highlight-regexp "->\\|<-" 'vk-inst-marked-face)
   (whitespace-turn-off))
 
-(defun veri-kompass (dir &optional top-name)
-  "Enable Veri-Kompass.
-Veri-Kompass is a verilog codebase navigation facility for Emacs.
-The codebase to be parsed will be in directory DIR.
-The decendent parsing will start from module TOP-NAME."
-  (interactive "D")
-  (setq vk-mod-str-hash (make-hash-table :test 'equal))
-  (setq vk-module-list
-	(vk-list-modules-in-proj
-	 (vk-list-file-in-proj dir)))
-  (unless top-name
-    (setq top-name (helm :sources
-			 (helm-build-sync-source "specify top module"
-			   :candidates (mapcar (lambda (x)
-						 (car x)) vk-module-list))
-			 :default vk-top
-			 :buffer "*helm-veri-kompass-module-top-select*")))
-  (message "Parsing design...")
-  (vk-make-thread (lambda ()
-		    (vk-compute-and-create-bar top-name))))
-
 (defun vk-open-at-point (&rest _)
   "Follow link into the hierarchy bar."
   (interactive)
@@ -611,6 +590,28 @@ If JUMP is not nil follow link too."
 	      (org-up-element)
 	      t)))
       res)))
+
+;;;###autoload
+(defun veri-kompass (dir &optional top-name)
+  "Enable Veri-Kompass.
+Veri-Kompass is a verilog codebase navigation facility for Emacs.
+The codebase to be parsed will be in directory DIR.
+The decendent parsing will start from module TOP-NAME."
+  (interactive "D")
+  (setq vk-mod-str-hash (make-hash-table :test 'equal))
+  (setq vk-module-list
+	(vk-list-modules-in-proj
+	 (vk-list-file-in-proj dir)))
+  (unless top-name
+    (setq top-name (helm :sources
+			 (helm-build-sync-source "specify top module"
+			   :candidates (mapcar (lambda (x)
+						 (car x)) vk-module-list))
+			 :default vk-top
+			 :buffer "*helm-veri-kompass-module-top-select*")))
+  (message "Parsing design...")
+  (vk-make-thread (lambda ()
+		    (vk-compute-and-create-bar top-name))))
 
 (define-minor-mode veri-kompass-minor-mode
   "Minor mode to be used into verilog files."
