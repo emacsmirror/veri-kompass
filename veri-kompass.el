@@ -4,6 +4,9 @@
 
 ;; Maintainer: andrea_corallo@yahoo.it
 ;; Package: veri-kompass
+;; Homepage: https://gitlab.com/koral/veri-kompass
+;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
+;; Keywords: language, verilog, hard-ware
 
 ;; This file is not part of GNU Emacs.
 
@@ -221,7 +224,7 @@ If is an l-val search for loads, if r-val search for drivers."
       ('r-val (vk-search-driver-at-point)))))
 
 
-(defun directory-files-recursively-with-symlink (dir regexp &optional include-directories)
+(defun vk-directory-files-recursively-with-symlink (dir regexp &optional include-directories)
   "This function is a variant of ‘directory-files-recursively’ from files.el.
 Return list of all files under DIR that have file names matching REGEXP.
 This function works recursively following symlinks.
@@ -259,7 +262,7 @@ output directories whose names match REGEXP."
 			    (string-match vk-skip-regexp x))
 			nil
 		      x))
-		  (directory-files-recursively-with-symlink
+		  (vk-directory-files-recursively-with-symlink
 		   dir vk-extention-regexp))))
 
 (defun vk-list-modules-in-file (file)
@@ -653,4 +656,4 @@ The decendent parsing will start from module TOP-NAME."
 
 (provide 'veri-kompass-mode)
 
-;;; veri-kompass-mode.el ends here
+;;; veri-kompass.el ends here
