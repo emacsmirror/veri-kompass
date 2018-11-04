@@ -89,6 +89,10 @@
 
 (defconst veri-kompass-ops-regex "[\]\[ ()|&\+-/%{}=<>]")
 
+(defconst veri-kompass-module-start-regexp "module[[:space:]\n]+\\([0-9a-z_]+\\)")
+
+(defconst veri-kompass-module-end-regexp "^[[:space:]]*endmodule")
+
 (defvar veri-kompass-hier nil
   "Holds the design hierarchy.")
 
@@ -194,7 +198,7 @@ INTERNAL if the search is limited to the current module."
   "Return the module containing the current point."
   (save-excursion
     (forward-word 2)
-    (re-search-backward "module[[:space:]\n]+\\([0-9a-z_]+\\)")
+    (re-search-backward veri-kompass-module-start-regexp)
     (match-string-no-properties 1)))
 
 (defun veri-kompass-search-load (sym)
@@ -384,7 +388,7 @@ This recursive function call itself walking all the verilog design."
              (setq orig-buff (buffer-string))
              (goto-char (cadr target))
              (set-mark (point))
-             (re-search-forward "^[[:space:]]*endmodule" nil t)
+             (re-search-forward veri-kompass-module-end-regexp nil t)
              (narrow-to-region (mark) (point))
              (veri-kompass-thread-yield)
              (veri-kompass-delete-parameters)
