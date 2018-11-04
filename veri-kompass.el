@@ -106,6 +106,18 @@
   "Holds a module instantiations."
   inst-name mod-name file-name line)
 
+(defmacro veri-kompass-within-current-module (&rest code)
+  "Execute code CODE narrowing into the current module definition."
+  `(let* ((point-orig (point))
+          (start (re-search-backward veri-kompass-module-start-regexp nil t))
+          (end (re-search-forward veri-kompass-module-end-regexp nil t)))
+     (goto-char point-orig)
+     (if (and start end)
+         (save-restriction
+           (narrow-to-region start end)
+           ,@code)
+       (error "Not in a module definition?"))))
+
 (defmacro veri-kompass-make-thread (f)
   "Make thread if threading is available.
 Argument F is the thread name."
@@ -184,15 +196,16 @@ INTERNAL if the search is limited to the current module."
 (defun veri-kompass-search-driver-at-point ()
   "Goto the driver for symbol at point."
   (interactive)
-  (let ((res (veri-kompass-search-driver (car (veri-kompass-sym-at-point)))))
-    (when res
-      (if (eq res 'go-up)
-          (veri-kompass-go-up-from-point)
-        (if (equal (length res) 1)
-            (goto-char (cdar res))
-          (goto-char (helm :sources (helm-build-sync-source "select driver line"
-                                      :candidates res)
-                           :buffer "*helm-veri-kompass-driver-select*")))))))
+  (veri-kompass-within-current-module
+   (let ((res (veri-kompass-search-driver (car (veri-kompass-sym-at-point)))))
+     (when res
+       (if (eq res 'go-up)
+           (veri-kompass-go-up-from-point)
+         (if (equal (length res) 1)
+             (goto-char (cdar res))
+           (goto-char (helm :sources (helm-build-sync-source "select driver line"
+                                       :candidates res)
+                            :buffer "*helm-veri-kompass-driver-select*"))))))))
 
 (defun veri-kompass-module-name-at-point ()
   "Return the module containing the current point."
@@ -216,13 +229,14 @@ INTERNAL if the search is limited to the current module."
 (defun veri-kompass-search-load-at-point ()
   "Goto the loads for symbol at point."
   (interactive)
-  (let ((res (veri-kompass-search-load (car (veri-kompass-sym-at-point)))))
-    (when res
-      (if (equal (length res) 1)
-          (goto-char (cdar res))
-        (goto-char (helm :sources (helm-build-sync-source "select load line"
-                                    :candidates res)
-                         :buffer "*helm-veri-kompass-load-select*"))))))
+  (veri-kompass-within-current-module
+   (let ((res (veri-kompass-search-load (car (veri-kompass-sym-at-point)))))
+     (when res
+       (if (equal (length res) 1)
+           (goto-char (cdar res))
+         (goto-char (helm :sources (helm-build-sync-source "select load line"
+                                     :candidates res)
+                          :buffer "*helm-veri-kompass-load-select*")))))))
 
 (defun veri-kompass-follow-from-point ()
   "Follow symbol at point.
