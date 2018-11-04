@@ -139,13 +139,15 @@ INTERNAL if the search is limited to the current module."
       (if (re-search-forward (concat
                               "input +\\(wire +\\)?\\(logic +\\)?\\[*.*\] +\\("
                               sym
-                              "\\)") nil t)
+                              "\\)")
+                             nil t)
           (if (and (equal (match-beginning 3) point-orig) (not internal))
               'go-up
             (list (cons (match-string 0) (match-beginning 3))))
         (if (re-search-forward (concat "input +\\(wire +\\)?\\(logic +\\)?\\("
                                        sym
-                                       "\\)") nil t)
+                                       "\\)")
+                               nil t)
             (if (and (equal (match-beginning 3) point-orig) (not internal))
                 'go-up
               (list (cons (match-string 0) (match-beginning 3))))
@@ -159,7 +161,8 @@ INTERNAL if the search is limited to the current module."
                      "\\>\\)[[:space:]]*\\(\\[.*\\] +\\)?\\(=\\|<=\\)[^=].*")
                     nil t)
               (push (cons (match-string 0)
-                          (match-beginning 0)) res))
+                          (match-beginning 0))
+                    res))
             (if res
                 res
               ;; Otherwise is coming from e submodule. TODO: check input/output!
@@ -167,9 +170,11 @@ INTERNAL if the search is limited to the current module."
                       (concat
                        "\\..+([[:space:]]*\\("
                        sym
-                       "\\)\\(\\[.*\\][[:space:]]*\\)?)") nil t)
+                       "\\)\\(\\[.*\\][[:space:]]*\\)?)")
+                      nil t)
                 (push (cons (match-string 0)
-                            (match-beginning 1)) res))
+                            (match-beginning 1))
+                      res))
               res)))))))
 
 (defun veri-kompass-search-driver-at-point ()
