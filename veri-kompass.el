@@ -6,7 +6,7 @@
 ;; Package: veri-kompass
 ;; Homepage: https://gitlab.com/koral/veri-kompass
 ;; Version: 0.2
-;; Package-Requires: ((emacs "25") (cl-lib "0.5"))
+;; Package-Requires: ((emacs "25") (cl-lib "0.5") (helm "1.0") (org "8.2.0"))
 ;; Keywords: languages, extensions, verilog, hardware, rtl
 
 ;; This file is not part of GNU Emacs.
