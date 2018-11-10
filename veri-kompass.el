@@ -49,25 +49,30 @@
 (require 'derived)
 (require 'hashtable-print-readable)
 
+(defgroup veri-kompass nil
+  "Customization options for veri-kompass."
+  :prefix "veri-kompass"
+  :group 'languages)
+
 (defcustom veri-kompass-top ""
   "Default top module name."
   :type 'string
-  :group 'veri-kompass-mode)
+  :group 'veri-kompass)
 
 (defcustom veri-kompass-extention-regexp ".+\\.s?v$"
   "Regexp matching project files."
   :type 'string
-  :group 'veri-kompass-mode)
+  :group 'veri-kompass)
 
 (defcustom veri-kompass-skip-regexp "^.*CONFORMTO.*$"
   "Regexp matching files to be skip."
   :type 'string
-  :group 'veri-kompass-mode)
+  :group 'veri-kompass)
 
 (defface veri-kompass-inst-marked-face
   '((t :foreground "red1"))
   "Face for marking instance selected."
-  :group 'veri-kompass-mode)
+  :group 'veri-kompass)
 
 (defvar veri-kompass-module-list nil)
 
