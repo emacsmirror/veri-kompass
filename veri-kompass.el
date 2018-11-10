@@ -672,15 +672,10 @@ The decendent parsing will start from module TOP-NAME."
   (define-key veri-kompass-mode-map (kbd "u") 'veri-kompass-go-up)
   (define-key veri-kompass-mode-map (kbd "q") 'veri-kompass-unmark)
   (define-key veri-kompass-mode-map (kbd "b") 'veri-kompass-go-backward)
-  (define-key veri-kompass-mode-map (kbd "S-<right>") 'windmove-right)
-  (define-key veri-kompass-mode-map (kbd "S-<left>") 'windmove-left)
-  (define-key veri-kompass-mode-map (kbd "S-<up>") 'windmove-up)
-  (define-key veri-kompass-mode-map (kbd "S-<down>") 'windmove-down)
   (define-key veri-kompass-mode-map (kbd "C-S-<right>")
     'enlarge-window-horizontally)
   (define-key veri-kompass-mode-map (kbd "C-S-<left>")
-    'shrink-window-horizontally)
-  )
+    'shrink-window-horizontally))
 
 (define-derived-mode
   veri-kompass-mode
