@@ -1,4 +1,4 @@
-;;; veri-kompass.el --- verilog codebase navigation facility for GNU Emacs  -*- lexical-binding:t -*-
+;;; veri-kompass.el --- verilog codebase navigation facility -*- lexical-binding:t -*-
 
 ;; Copyright (C) 2018 Andrea Corallo
 
@@ -26,7 +26,7 @@
 
 ;;; Commentary:
 
-;; Provide verilog codebase navigation facility for Emacs.
+;; Provide verilog codebase navigation facility.
 ;; Including a hierarchy sidebar and functions to follow drivers and loads
 ;; within the design.
 
@@ -630,7 +630,7 @@ If JUMP is not nil follow link too."
 ;;;###autoload
 (defun veri-kompass (dir &optional top-name)
   "Enable Veri-Kompass.
-Veri-Kompass is a verilog codebase navigation facility for Emacs.
+Veri-Kompass is a verilog codebase navigation facility.
 The codebase to be parsed will be in directory DIR.
 The decendent parsing will start from module TOP-NAME."
   (interactive "D")
