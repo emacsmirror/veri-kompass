@@ -685,8 +685,6 @@ The decendent parsing will start from module TOP-NAME."
 
 (add-to-list 'auto-mode-alist '("veri-kompass-bar" . veri-kompass-mode))
 
-(add-hook 'verilog-mode-hook 'veri-kompass-minor-mode)
-
 (provide 'veri-kompass)
 
 ;;; veri-kompass.el ends here
