@@ -6,7 +6,7 @@
 ;; Package: veri-kompass
 ;; Homepage: https://gitlab.com/koral/veri-kompass
 ;; Version: 0.2
-;; Package-Requires: ((emacs "25") (cl-lib "0.5") (helm "1.0") (org "8.2.0"))
+;; Package-Requires: ((emacs "25") (cl-lib "0.5") (org "8.2.0"))
 ;; Keywords: languages, extensions, verilog, hardware, rtl
 
 ;; This file is not part of GNU Emacs.
@@ -42,8 +42,6 @@
 (require 'whitespace)
 (require 'loaddefs)
 (require 'simple)
-(require 'helm-source)
-(require 'helm)
 (require 'message)
 (require 'thingatpt)
 (require 'org)
@@ -77,8 +75,6 @@
 
 (defvar veri-kompass-mod-str-hash nil
   "This hash contains module structure hashed per module name.")
-
-(defvar veri-kompass-helm-mods nil)
 
 (defconst veri-kompass-bar-name "*veri-kompass-bar*")
 
@@ -129,6 +125,16 @@ Argument F is the thread name."
   "Yield a thread if threading is available."
   (when (fboundp 'thread-yield)
     '(thread-yield)))
+
+(defun veri-kompass-completing-read (msg candidates &optional buff-name)
+  "Complete user input between CANDIDATES using helm if available.
+MSG is a string to prompt with.
+BUFF-NAME is the buffer name created in case helm is used."
+  (if (fboundp 'helm)
+      (helm :sources (helm-build-sync-source msg
+		       :candidates candidates)
+	    :buffer buff-name)
+    (completing-read msg candidates)))
 
 (defun veri-kompass-sym-classify-at-point ()
   "Classify if a symbol is l-val or r-val."
@@ -203,9 +209,10 @@ INTERNAL if the search is limited to the current module."
            (veri-kompass-go-up-from-point)
          (if (equal (length res) 1)
              (goto-char (cdar res))
-           (goto-char (helm :sources (helm-build-sync-source "select driver line"
-                                       :candidates res)
-                            :buffer "*helm-veri-kompass-driver-select*"))))))))
+           (goto-char
+	    (veri-kompass-completing-read "select driver line: "
+					  res
+					  "*veri-kompass-driver-select*"))))))))
 
 (defun veri-kompass-module-name-at-point ()
   "Return the module containing the current point."
@@ -234,9 +241,10 @@ INTERNAL if the search is limited to the current module."
      (when res
        (if (equal (length res) 1)
            (goto-char (cdar res))
-         (goto-char (helm :sources (helm-build-sync-source "select load line"
-                                     :candidates res)
-                          :buffer "*helm-veri-kompass-load-select*")))))))
+         (goto-char
+	  (veri-kompass-completing-read "select load line: "
+					res
+					"*veri-kompass-load-select*")))))))
 
 (defun veri-kompass-follow-from-point ()
   "Follow symbol at point.
@@ -631,12 +639,12 @@ The decendent parsing will start from module TOP-NAME."
         (veri-kompass-list-modules-in-proj
          (veri-kompass-list-file-in-proj dir)))
   (unless top-name
-    (setq top-name (helm :sources
-                         (helm-build-sync-source "specify top module"
-                           :candidates (mapcar (lambda (x)
-                                                 (car x)) veri-kompass-module-list))
-                         :default veri-kompass-top
-                         :buffer "*helm-veri-kompass-module-top-select*")))
+    (setq top-name
+	  (veri-kompass-completing-read "specify top module: "
+					(mapcar (lambda (x)
+						  (car x))
+						veri-kompass-module-list)
+					"*veri-kompass-module-top-select*")))
   (message "Parsing design...")
   (veri-kompass-make-thread (lambda ()
                               (veri-kompass-compute-and-create-bar top-name))))
