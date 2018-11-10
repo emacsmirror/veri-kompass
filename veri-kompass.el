@@ -683,8 +683,6 @@ The decendent parsing will start from module TOP-NAME."
   "Veri-Kompass"
   "Generate and handle verilog project hierarchy.")
 
-(add-to-list 'auto-mode-alist '("veri-kompass-bar" . veri-kompass-mode))
-
 (provide 'veri-kompass)
 
 ;;; veri-kompass.el ends here
