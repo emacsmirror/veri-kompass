@@ -16,6 +16,8 @@ Add into your .emacs
 
 (add-to-list 'load-path "path-to-veri-kompass-here")
 (require 'veri-kompass)
+;; Enable veri kompass minor mode mode
+(add-hook 'verilog-mode-hook 'veri-kompass-minor-mode)
 
 ## Usage
 
