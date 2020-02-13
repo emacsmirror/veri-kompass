@@ -40,7 +40,6 @@
 (require 'files)
 (require 'format)
 (require 'whitespace)
-(require 'loaddefs)
 (require 'simple)
 (require 'message)
 (require 'thingatpt)
