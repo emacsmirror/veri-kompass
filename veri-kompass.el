@@ -135,9 +135,11 @@ Argument F is the thread name."
 MSG is a string to prompt with.
 BUFF-NAME is the buffer name created in case helm is used."
   (if (fboundp 'helm)
-      (helm :sources (helm-build-sync-source msg
-		       :candidates candidates)
-	    :buffer buff-name)
+      (progn
+	(require 'helm-source)
+	(helm :sources (helm-build-sync-source msg
+			 :candidates candidates)
+	      :buffer buff-name))
     (completing-read msg candidates)))
 
 (defun veri-kompass-sym-classify-at-point ()
